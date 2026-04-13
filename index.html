@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Alamedas Jardins</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green-deep:#1a3a2a; --green-mid:#2d5c3f; --green-light:#4a8c5c;
+  --green-pale:#c8e6d0; --cream:#f5f0e8; --sand:#e8dfc8;
+  --text-dark:#1a2a1e; --text-mid:#3d5448; --text-soft:#7a9a82;
+  --white:#fff; --shadow:0 2px 16px rgba(26,58,42,.10);
+  --radius:16px; --radius-sm:10px; --tab-h:66px;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+body{font-family:"DM Sans",sans-serif; background:var(--cream); color:var(--text-dark); overflow-x:hidden;}
+
+/* HEADER & LOGO */
+.header{background:var(--green-deep); padding:40px 20px 30px; text-align:center; position:relative;}
+.logo-spin{width:80px; height:80px; margin:0 auto 15px; animation:spin 20s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+
+.header h1{font-family:"Fraunces",serif; color:var(--cream); font-size:26px; font-weight:300; letter-spacing:-0.5px;}
+.header h1 em{font-style:italic; font-weight:600; color:var(--green-pale);}
+
+/* BOTÃO ADMIN INVISÍVEL */
+.admin-trigger{position:absolute; top:0; right:0; width:60px; height:60px; background:transparent; border:none; z-index:100;}
+
+/* NAVEGAÇÃO POR ABAS */
+.page{display:none; padding:20px 16px 100px; min-height:80vh;}
+.page.active{display:block; animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+/* BUSCA */
+.search-container{margin-bottom:20px; position:sticky; top:10px; z-index:50;}
+.search-bar{
+  background:var(--white); border-radius:50px; padding:12px 20px;
+  display:flex; align-items:center; box-shadow:var(--shadow); border:1px solid var(--sand);
+}
+.search-bar input{flex:1; border:none; outline:none; font-family:"DM Sans"; font-size:16px; color:var(--text-dark);}
+
+/* CARDS */
+.card{
+  background:var(--white); border-radius:var(--radius); padding:18px;
+  margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;
+  box-shadow:var(--shadow); border:1px solid rgba(232,223,200,0.5);
+}
+.card-info h3{font-family:"Fraunces",serif; font-size:18px; color:var(--green-deep); margin-bottom:4px;}
+.card-info p{font-size:12px; color:var(--text-soft); text-transform:uppercase; letter-spacing:1px; font-weight:600;}
+
+.btn-action{
+  width:48px; height:48px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center; text-decoration:none;
+}
+
+/* MENU INFERIOR */
+.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; height:var(--tab-h);
+  background:var(--green-deep); display:flex; align-items:center;
+  padding:0 10px; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); z-index:1000;
+}
+.nav-item{
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  color:rgba(200,230,208,0.4); text-decoration:none; font-size:10px;
+  font-weight:600; transition:0.3s; border:none; background:none;
+}
+.nav-item.active{color:var(--green-pale);}
+.nav-item svg{width:22px; height:22px; margin-bottom:4px; fill:currentColor;}
+
+/* ADMIN & FORMS */
+.admin-card{background:var(--green-mid); color:white; padding:20px; border-radius:var(--radius); margin-bottom:20px;}
+.input-field{
+  width:100%; padding:14px; margin-bottom:12px; border-radius:var(--radius-sm);
+  border:1px solid var(--sand); font-family:"DM Sans"; font-size:15px;
+}
+.btn-save{
+  width:100%; padding:16px; background:var(--green-pale); color:var(--green-deep);
+  border:none; border-radius:var(--radius-sm); font-weight:700; text-transform:uppercase;
+}
+
+/* TOAST */
+#toast{
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+  background:var(--green-deep); color:white; padding:12px 24px;
+  border-radius:50px; font-size:14px; z-index:2000; display:none;
+}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header class="header">
+  <button class="admin-trigger" onclick="nav('admin')"></button>
+  <div class="logo-spin">
+    <svg viewBox="0 0 845 784" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M422.5 0L845 784H0L422.5 0Z" fill="#c8e6d0"/>
+      <circle cx="422" cy="450" r="110" fill="#1a3a2a"/>
+    </svg>
+  </div>
+  <h1>Alamedas <em>Jardins</em></h1>
+</header>
+
+<main id="page-prestadores" class="page active">
+  <div class="search-container">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Buscar por 'água', 'jardinagem'..." oninput="filter()">
+    </div>
+  </div>
+  <div id="list-prestadores"></div>
+</main>
+
+<main id="page-docs" class="page">
+  <div id="list-docs"></div>
+</main>
+
+<main id="page-apps" class="page">
+  <div id="list-apps">
+    <div class="card">
+      <div class="card-info"><h3>App Condomínio</h3><p>Acesso e Boletos</p></div>
+      <a href="#" class="btn-action" style="background:var(--green-mid)">📲</a>
+    </div>
+  </div>
+</main>
+
+<main id="page-avisos" class="page">
+  <div id="list-avisos"></div>
+</main>
+
+<main id="page-admin" class="page">
+  <div id="admin-login">
+    <h2 style="font-family:Fraunces; margin-bottom:20px">Acesso Administrativo</h2>
+    <input type="password" id="adminPass" class="input-field" placeholder="Digite a senha">
+    <button onclick="loginAdmin()" class="btn-save">Entrar</button>
+  </div>
+
+  <div id="admin-content" style="display:none">
+    <div class="admin-card">
+      <h3>Novo Prestador</h3>
+      <input type="text" id="p-nome" class="input-field" placeholder="Nome do Prestador" style="margin-top:10px">
+      <input type="text" id="p-tel" class="input-field" placeholder="Telefone (ex: 79991223344)">
+      <input type="text" id="p-cat" class="input-field" placeholder="Categoria (ex: Água)">
+      <button onclick="savePrestador()" class="btn-save">Cadastrar</button>
+    </div>
+    <button onclick="logoutAdmin()" style="width:100%; background:none; border:none; color:var(--text-soft)">Sair do Painel</button>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="nav('prestadores', this)">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+    PRESTADORES
+  </button>
+  <button class="nav-item" onclick="nav('docs', this)">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+    DOCS
+  </button>
+  <button class="nav-item" onclick="nav('apps', this)">
+    <svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+    APPS
+  </button>
+  <button class="nav-item" onclick="nav('avisos', this)">
+    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+    AVISOS
+  </button>
+</nav>
+
+<script>
+const API = '/api';
+let store = { prestadores: [], avisos: [], docs: [] };
+
+async function load() {
+  try {
+    const resP = await fetch(`${API}?path=prestadores`);
+    store.prestadores = await resP.json();
+    renderPrestadores(store.prestadores);
+
+    const resA = await fetch(`${API}?path=avisos`);
+    store.avisos = await resA.json();
+    renderAvisos(store.avisos);
+  } catch (e) { console.error(e); }
+}
+
+function renderPrestadores(data) {
+  const list = document.getElementById('list-prestadores');
+  list.innerHTML = data.map(p => `
+    <div class="card">
+      <div class="card-info"><h3>${p.nome}</h3><p>${p.categoria}</p></div>
+      <a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}" class="btn-action" style="background:#25D366">
+        <svg width="24" height="24" fill="white" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.025 3.2l-.694 2.54 2.595-.68c.895.54 1.83.83 2.843.831h.001c3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.586-5.766-5.766-5.766zm3.435 8.21c-.144.405-.833.784-1.15.823-.284.035-.65.064-1.048-.063-.24-.078-.54-.18-1.133-.43a5.13 5.13 0 0 1-2.153-1.895c-.244-.33-.45-.71-.45-1.11 0-.414.21-.617.34-.746.12-.116.26-.145.343-.145h.215c.07 0 .157 0 .23.16.08.19.27.66.295.714.025.054.04.116.005.188-.034.072-.05.157-.12.24l-.178.214c-.07.086-.145.18-.06.326.086.145.38.625.814 1.01.56.5 1.03.655 1.176.73.145.072.23.06.315-.04.085-.1.36-.42.456-.563.097-.145.19-.12.32-.072.13.048.825.39.967.46.14.073.235.11.27.17.034.06.034.346-.11.75z"/></svg>
+      </a>
+    </div>
+  `).join('');
+}
+
+function renderAvisos(data) {
+  const list = document.getElementById('list-avisos');
+  list.innerHTML = data.length ? data.map(a => `
+    <div class="card" style="flex-direction:column; align-items:flex-start; gap:8px">
+      <div style="display:flex; justify-content:space-between; width:100%">
+        <span style="font-size:11px; font-weight:700; color:var(--green-light)">${a.date}</span>
+        <span style="font-size:10px; background:var(--sand); padding:2px 8px; border-radius:10px">${a.type}</span>
+      </div>
+      <h3 style="font-family:Fraunces; color:var(--green-deep)">${a.title}</h3>
+      <p style="text-transform:none; color:var(--text-mid); font-weight:400; font-size:14px">${a.body}</p>
+    </div>
+  `).join('') : '<p style="text-align:center; padding:20px; color:var(--text-soft)">Sem avisos no momento.</p>';
+}
+
+function filter() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const f = store.prestadores.filter(p => p.nome.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q));
+  renderPrestadores(f);
+}
+
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  window.scrollTo(0,0);
+}
+
+async function loginAdmin() {
+  const pass = document.getElementById('adminPass').value;
+  const res = await fetch(`${API}?path=login`, { method:'POST', body: JSON.stringify({password: pass}) });
+  const data = await res.json();
+  if(data.success) {
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+  } else { toast("Senha incorreta"); }
+}
+
+async function savePrestador() {
+  const nome = document.getElementById('p-nome').value;
+  const tel = document.getElementById('p-tel').value;
+  const cat = document.getElementById('p-cat').value;
+  
+  const res = await fetch(`${API}?path=add_prestador`, {
+    method:'POST', 
+    body: JSON.stringify({nome, telefone:tel, categoria:cat})
+  });
+  
+  if(res.ok) {
+    toast("Cadastrado com sucesso!");
+    document.querySelectorAll('#admin-content input').forEach(i => i.value = '');
+    load();
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function logoutAdmin() {
+  document.getElementById('admin-login').style.display = 'block';
+  document.getElementById('admin-content').style.display = 'none';
+  document.getElementById('adminPass').value = '';
+  nav('prestadores', document.querySelector('.nav-item'));
+}
+
+window.onload = load;
+</script>
+</body>
+</html>
