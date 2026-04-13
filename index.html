@@ -368,64 +368,56 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 <script>
-// Removemos o Supabase e apontamos para a nossa API no Cloudflare
+// apontametno para a API no Cloudflare
 const API = '/api';
 
-// ── FUNÇÕES DE BUSCA ──
 async function loadProviders() {
-  try {
-    const res = await fetch(`${API}?path=prestadores`);
-    return await res.json();
-  } catch (e) {
-    console.error("Erro ao carregar prestadores:", e);
-    return [];
-  }
+  const res = await fetch(`${API}?path=prestadores`);
+  return await res.json();
 }
 
 async function loadDocs() {
-  try {
-    const res = await fetch(`${API}?path=docs`);
-    return await res.json();
-  } catch (e) {
-    console.error("Erro ao carregar documentos:", e);
-    return [];
-  }
+  const res = await fetch(`${API}?path=docs`);
+  return await res.json();
 }
 
 async function loadAvisos() {
-  try {
-    const res = await fetch(`${API}?path=avisos`);
-    return await res.json();
-  } catch (e) {
-    console.error("Erro ao carregar avisos:", e);
-    return [];
-  }
+  const res = await fetch(`${API}?path=avisos`);
+  return await res.json();
 }
 
+// Garanta que a sua função init chame os renders corretamente
+async function init() {
+  // Carrega tudo em paralelo
+  const [p, d, a] = await Promise.all([loadProviders(), loadDocs(), loadAvisos()]);
+  
+  // providers é a variável global que seus filtros usam
+  providers = p; 
+  
+  renderProviders(p);
+  renderDocs(d);
+  renderAvisos(a);
+}
+ 
 // ── FUNÇÕES DE ADMINISTRAÇÃO ──
-async function dbLogin(password) { // Se o seu script usar checkAdmin, mude o nome aqui
-  try {
-    const res = await fetch(`${API}?path=login`, {
-      method: 'POST',
-      body: JSON.stringify({ password })
-    });
-    const data = await res.json();
-    return data.success;
-  } catch (e) {
-    return false;
-  }
+async function dbLogin(password) {
+  const res = await fetch(`${API}?path=login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }) // Chave 'password' esperada pela API
+  });
+  const data = await res.json();
+  return data.success;
 }
 
 async function dbAddPrestador(prestador) {
-  try {
-    const res = await fetch(`${API}?path=add_prestador`, {
-      method: 'POST',
-      body: JSON.stringify(prestador)
-    });
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
+  // prestador deve ser { name, phone, category }
+  const res = await fetch(`${API}?path=add_prestador`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(prestador)
+  });
+  return res.ok;
 }
 
 async function dbAddAviso(aviso) {
@@ -660,20 +652,25 @@ async function renderAdminPrest(){
     ?p.map(x=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${x.category}</div><div class="admin-item-name">${x.name}</div><div class="admin-item-detail">${formatPhone(x.phone)}</div></div><button class="del-btn" onclick="delProvider(${x.id})">🗑</button></div>`).join("")
     :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum prestador.</div>`;
 }
-async function addProvider(){
-  const name=document.getElementById("f-name").value.trim();
-  const phone=document.getElementById("f-phone").value.replace(/\D/g,"");
-  const category=document.getElementById("f-newcat").value.trim()||document.getElementById("f-cat").value;
-  const note=document.getElementById("f-note").value.trim();
-  if(!name||!phone||!category){showToast("⚠️ Preencha nome, telefone e categoria");return;}
-  if(phone.length<10){showToast("⚠️ Telefone inválido");return;}
-  showToast("⏳ Salvando…");
-  const ok=await dbAddProvider({name,phone,category,note});
-  if(!ok){showToast("❌ Erro ao salvar");return;}
-  ["f-name","f-phone","f-newcat","f-note"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("f-cat").value="";
-  await renderAdminPrest();await renderCatSelect();await renderPublic();
-  showToast("✅ Prestador adicionado!");
+async function addPrestador() {
+  const name = document.getElementById("p-nome").value.trim();
+  const phone = document.getElementById("p-tel").value.trim();
+  const category = document.getElementById("p-cat").value.trim();
+  
+  if(!name || !phone || !category) {
+    showToast("⚠️ Preencha todos os campos");
+    return;
+  }
+
+  showToast("⏳ Cadastrando...");
+  const ok = await dbAddPrestador({ name, phone, category }); // Chaves em inglês
+  if(ok) {
+    showToast("✅ Prestador cadastrado!");
+    // Limpar campos e recarregar listas
+    init(); 
+  } else {
+    showToast("❌ Erro ao cadastrar");
+  }
 }
 async function delProvider(id){
   if(!confirm("Remover este prestador?"))return;
