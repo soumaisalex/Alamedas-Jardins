@@ -172,16 +172,48 @@ let store = { prestadores: [], avisos: [], docs: [] };
 
 async function load() {
   try {
+    // Busca Prestadores
     const resP = await fetch(`${API}?path=prestadores`);
-    store.prestadores = await resP.json();
-    renderPrestadores(store.prestadores);
-
+    const dataP = await resP.json();
+    if (!dataP.error) {
+      store.prestadores = dataP || [];
+      renderPrestadores(store.prestadores);
+    }
+    // Busca Avisos
     const resA = await fetch(`${API}?path=avisos`);
-    store.avisos = await resA.json();
-    renderAvisos(store.avisos);
-  } catch (e) { console.error(e); }
+    const dataA = await resA.json();
+    if (!dataA.error) {
+      store.avisos = dataA || [];
+      renderAvisos(store.avisos);
+    }
+    // Busca Documentos
+    const resD = await fetch(`${API}?path=docs`);
+    const dataD = await resD.json();
+    if (!dataD.error) {
+      store.docs = dataD || [];
+      renderDocs(store.docs);
+    }
+
+  } catch (e) { 
+    console.error("Erro de conexão:", e); 
+  }
 }
 
+// Nova função para desenhar os cards de documentos
+function renderDocs(data) {
+  const list = document.getElementById('list-docs');
+  list.innerHTML = data.length ? data.map(d => `
+    <div class="card">
+      <div class="card-info">
+        <h3>${d.nome}</h3>
+        <p>${d.descricao || 'Documento ' + d.tipo.toUpperCase()}</p>
+      </div>
+      <a href="${d.url}" target="_blank" class="btn-action" style="background:var(--green-light)">
+        <svg width="24" height="24" fill="white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      </a>
+    </div>
+  `).join('') : '<p style="text-align:center; padding:20px; color:var(--text-soft)">Nenhum documento encontrado.</p>';
+}
 function renderPrestadores(data) {
   const list = document.getElementById('list-prestadores');
   list.innerHTML = data.map(p => `
