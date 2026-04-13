@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless'; // ou de 'https://esm.sh/...' se usou a opção 2
+import { neon } from '@neondatabase/serverless';
 
 export async function onRequest(context) {
   const sql = neon(context.env.DATABASE_URL);
@@ -15,24 +15,22 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { headers });
 
   try {
-    // GET: Listagem Geral
+    // GET: Consultas
     if (request.method === 'GET') {
       let result;
       if (path === 'prestadores') {
-        // Busca de 'providers' e renomeia as colunas para o HTML entender
-        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria FROM providers ORDER BY name ASC`;
+        result = await sql`SELECT id, name, phone, category FROM providers ORDER BY name ASC`;
       }
       if (path === 'avisos') {
-        // Notices já usa title, body, date, type, então não precisa renomear
         result = await sql`SELECT * FROM notices ORDER BY id DESC`;
       }
       if (path === 'docs') {
-        result = await sql`SELECT id, name AS nome, url, type AS tipo, description AS descricao FROM documents ORDER BY name ASC`;
+        result = await sql`SELECT id, name, url, type, description FROM documents ORDER BY name ASC`;
       }
       return new Response(JSON.stringify(result || []), { headers });
     }
 
-    // POST: Operações de Escrita e Login
+    // POST: Login e Escrita
     if (request.method === 'POST') {
       const body = await request.json();
 
@@ -42,8 +40,7 @@ export async function onRequest(context) {
       }
 
       if (path === 'add_prestador') {
-        // Insere na tabela 'providers' usando os dados que vêm do front-end
-        await sql`INSERT INTO providers (name, phone, category) VALUES (${body.nome}, ${body.telefone}, ${body.categoria})`;
+        await sql`INSERT INTO providers (name, phone, category) VALUES (${body.name}, ${body.phone}, ${body.category})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
