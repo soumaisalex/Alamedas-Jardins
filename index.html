@@ -368,433 +368,248 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 <script>
-  const API = '/api'; // Carregamento de dados
-  
-async function loadProviders() {
-  const res = await fetch(`${API}?path=prestadores`);
-  const data = await res.json();  // Se o seu HTML usa p.nome, vamos mapear aqui para garantir
-  return data.map(p => ({
-    ...p,
-    nome: p.name,       // Garante compatibilidade com seu render
-    telefone: p.phone, 
-    categoria: p.category
-  }));
-}
+const API = '/api';
+let providers = []; // Variável global para os filtros
 
-async function loadDocs() {
-  const res = await fetch(`${API}?path=docs`);
-  const data = await res.json();
-  return data.map(d => ({
-    ...d,
-    nome: d.name,
-    descricao: d.description
-  }));
-}
+// ════════════════════════════════════════════════
+// 1. INICIALIZAÇÃO E CARGA DE DADOS
+// ════════════════════════════════════════════════
 
-// Função de Login com Feedback
-async function dbLogin(password) {
+async function init() {
   try {
-    const res = await fetch(`${API}?path=login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
+    // Carregamos as 3 fontes de dados em paralelo para máxima performance
+    const [p, d, a] = await Promise.all([
+      fetch(`${API}?path=prestadores`).then(r => r.json()),
+      fetch(`${API}?path=docs`).then(r => r.json()),
+      fetch(`${API}?path=avisos`).then(r => r.json())
+    ]);
+
+    // Verificamos se o retorno é um erro do banco ou um array válido
+    providers = Array.isArray(p) ? p : [];
+    const docs = Array.isArray(d) ? d : [];
+    const avisos = Array.isArray(a) ? a : [];
+
+    // Renderizamos as listas iniciais
+    renderProviders(providers);
+    renderDocs(docs);
+    renderAvisos(avisos);
     
-    if (!res.ok) throw new Error("Erro na rede");
-    
-    const data = await res.json();
-    if (!data.success) {
-      if (typeof showToast === 'function') showToast("❌ Senha incorreta");
-      else alert("Senha incorreta");
-    }
-    return data.success;
+    console.log("Sistema inicializado com sucesso.");
   } catch (e) {
-    console.error("Erro no login:", e);
-    return false;
+    console.error("Erro na carga inicial:", e);
+    showToast("❌ Erro de conexão com o servidor");
   }
 }
 
+// ════════════════════════════════════════════════
+// 2. FUNÇÕES DE RENDERIZAÇÃO (DESIGN ORIGINAL)
+// ════════════════════════════════════════════════
+
+function renderProviders(data) {
+  const list = document.getElementById('list-prestadores');
+  if (!list) return;
+
+  list.innerHTML = data.map(p => `
+    <div class="card">
+      <div class="card-info">
+        <p>${p.categoria || 'Serviço'}</p>
+        <h3>${p.nome}</h3>
+      </div>
+      <a href="https://wa.me/55${(p.telefone || '').replace(/\D/g,'')}" target="_blank" class="btn-action" style="background:#25D366">
+        <svg width="24" height="24" fill="white" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.025 3.2l-.694 2.54 2.595-.68c.895.54 1.83.83 2.843.831h.001c3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.586-5.766-5.766-5.766zm3.435 8.21c-.144.405-.833.784-1.15.823-.284.035-.65.064-1.048-.063-.24-.078-.54-.18-1.133-.43a5.13 5.13 0 0 1-2.153-1.895c-.244-.33-.45-.71-.45-1.11 0-.414.21-.617.34-.746.12-.116.26-.145.343-.145h.215c.07 0 .157 0 .23.16.08.19.27.66.295.714.025.054.04.116.005.188-.034.072-.05.157-.12.24l-.178.214c-.07.086-.145.18-.06.326.086.145.38.625.814 1.01.56.5 1.03.655 1.176.73.145.072.23.06.315-.04.085-.1.36-.42.456-.563.097-.145.19-.12.32-.072.13.048.825.39.967.46.14.073.235.11.27.17.034.06.034.346-.11.75z"/></svg>
+      </a>
+    </div>
+  `).join('');
+}
+
+function renderDocs(data) {
+  const list = document.getElementById('list-docs');
+  if (!list) return;
+
+  list.innerHTML = data.map(d => `
+    <div class="card">
+      <div class="card-info">
+        <p>${d.tipo || 'PDF'}</p>
+        <h3>${d.nome}</h3>
+        <small style="color:var(--text-soft); font-size:11px;">${d.descricao || ''}</small>
+      </div>
+      <a href="${d.url}" target="_blank" class="btn-action" style="background:var(--green-light)">
+        <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      </a>
+    </div>
+  `).join('');
+}
+
+function renderAvisos(data) {
+  const list = document.getElementById('list-avisos');
+  if (!list) return;
+
+  list.innerHTML = data.map(a => `
+    <div class="card" style="flex-direction:column; align-items:flex-start; gap:12px;">
+      <div style="display:flex; justify-content:space-between; width:100%; border-bottom:1px solid var(--cream); padding-bottom:8px;">
+        <span style="font-size:11px; font-weight:700; color:var(--green-light)">${a.date}</span>
+        <span style="font-size:10px; background:var(--sand); padding:2px 8px; border-radius:10px; text-transform:uppercase">${a.type}</span>
+      </div>
+      <h3 style="font-family:Fraunces; color:var(--green-deep); font-size:18px;">${a.title}</h3>
+      <p style="text-transform:none; color:var(--text-mid); font-weight:400; font-size:14px; line-height:1.5;">${a.body}</p>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+// 3. FILTROS E NAVEGAÇÃO
+// ════════════════════════════════════════════════
+
+function filter(cat) {
+  // Remove classe active de todos os botões de filtro e adiciona no selecionado
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  if (cat === 'todos') {
+    renderProviders(providers);
+  } else {
+    const filtered = providers.filter(p => p.categoria.toLowerCase() === cat.toLowerCase());
+    renderProviders(filtered);
+  }
+}
+
+function filterSearch() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = providers.filter(p => 
+    p.nome.toLowerCase().includes(q) || 
+    p.categoria.toLowerCase().includes(q)
+  );
+  renderProviders(filtered);
+}
+
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
   
-// Inicialização (ajuste para bater com seu init)
-async function init() {
-  const [p, d, a] = await Promise.all([
-    loadProviders(),
-    loadDocs(),
-    typeof loadAvisos === 'function' ? loadAvisos() : fetch(`${API}?path=avisos`).then(r => r.json())
-  ]);
-
-  // 'providers' costuma ser a variável global para seus filtros
-  if (typeof providers !== 'undefined') providers = p; 
-
-  renderProviders(p);
-  renderDocs(d);
-  renderAvisos(a);
+  if (btn) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  window.scrollTo(0, 0);
 }
-async function loadAvisos() {
-  const res = await fetch(`${API}?path=avisos`);
-  return await res.json();
+
+// ════════════════════════════════════════════════
+// 4. ÁREA ADMINISTRATIVA (LOGIN E CADASTRO)
+// ════════════════════════════════════════════════
+
+async function loginAdmin() {
+  const pass = document.getElementById('adminPass').value;
+  if (!pass) return showToast("⚠️ Digite a senha");
+
+  showToast("⏳ Validando...");
+  const success = await dbLogin(pass);
+  
+  if (success) {
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    renderAdminAvisos();
+    showToast("✅ Acesso liberado");
+  } else {
+    showToast("❌ Senha incorreta");
+  }
 }
- 
-// ── FUNÇÕES DE ADMINISTRAÇÃO ──
+
+// Funções de comunicação com a API (POST necessitam de headers JSON)
 async function dbLogin(password) {
-  const res = await fetch(`${API}?path=login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }) // Chave 'password' esperada pela API
-  });
-  const data = await res.json();
-  return data.success;
+  try {
+    const res = await fetch(`${API}?path=login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    return data.success;
+  } catch (e) { return false; }
 }
 
 async function dbAddPrestador(prestador) {
-  // prestador deve ser { name, phone, category }
   const res = await fetch(`${API}?path=add_prestador`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(prestador)
   });
   return res.ok;
 }
 
 async function dbAddAviso(aviso) {
-  try {
-    const res = await fetch(`${API}?path=add_aviso`, {
-      method: 'POST',
-      body: JSON.stringify(aviso)
-    });
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
+  const res = await fetch(`${API}?path=add_aviso`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(aviso)
+  });
+  return res.ok;
 }
 
 async function dbDelAviso(id) {
-  try {
-    const res = await fetch(`${API}?path=del_aviso`, {
-      method: 'POST',
-      body: JSON.stringify({ id })
-    });
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
-}
-
-// ══════ CONFIG ══════
-const CAT_ICONS = {
-  "água mineral":"💧","ar-condicionado":"❄️","arquiteta":"📐","aulas":"📚","babá":"👶",
-  "barbeiro":"💈","cabeleireira":"💇","carregadores":"🔌","corretora":"🏠","costureira":"🧵",
-  "cuidadora":"🤝","dedetização":"🪲","dentista":"🦷","designer":"🛋️","eletricista":"⚡",
-  "encanador":"🔧","faxineira":"🧹","formatação":"💻","fotografia":"📷","fretes":"🚛",
-  "mudanças":"🚛","geladeira":"🧊","guincho":"🚗","impressão":"🖨️","manicure":"💅",
-  "box":"🚿","massagem":"💆","motoboy":"🛵","montador":"🪛","nutricionista":"🥗",
-  "pedreiro":"🧱","pintor":"🎨","plano de saúde":"🏥","podologia":"🦶","sobrancelha":"✨",
-  "sofá":"🛋️","transporte escolar":"🚌","veterinária":"🐾","higienização":"🧽",
-};
-function getIcon(cat){
-  const k=cat.toLowerCase();
-  for(const[key,icon]of Object.entries(CAT_ICONS)){if(k.includes(key))return icon;}
-  return"🛠️";
-}
-
-// ══════ TAB NAVIGATION ══════
-const TABS=["prestadores","documentos","apps","avisos"];
-function switchTab(tab,btn){
-  TABS.forEach(t=>document.getElementById("tab-"+t).classList.toggle("active",t===tab));
-  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-  if(btn)btn.classList.add("active");
-  document.getElementById("admin-fab").style.display="flex";
-  if(tab==="prestadores")renderPublic();
-  if(tab==="documentos")renderDocs();
-  if(tab==="avisos")renderAvisos();
-  window.scrollTo(0,0);
-}
-
-// ══════ PRESTADORES ══════
-let activeCategory=null;
-async function renderPublic(){await renderCategories();await renderCards();}
-
-async function renderCategories(){
-  const wrap=document.getElementById("cats-wrap");
-  const cats=await loadCats();
-  wrap.innerHTML=`<div class="cat-chip ${!activeCategory?"active":""}" onclick="filterCat(null)">Todos</div>`;
-  cats.forEach(cat=>{
-    const c=document.createElement("div");
-    c.className="cat-chip"+(activeCategory===cat?" active":"");
-    c.textContent=getIcon(cat)+" "+cat;
-    c.onclick=()=>filterCat(cat);
-    wrap.appendChild(c);
+  const res = await fetch(`${API}?path=del_aviso`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id })
   });
+  return res.ok;
 }
 
-async function filterCat(cat){
-  activeCategory=cat;
-  document.getElementById("search-input").value="";
-  document.getElementById("clear-btn").style.display="none";
-  await renderCategories();await renderCards();
-}
-
-async function renderCards(q=""){
-  const grid=document.getElementById("cards-grid");
-  const empty=document.getElementById("empty-state");
-  const info=document.getElementById("results-info");
-  grid.innerHTML=`<div class="loading">Carregando…</div>`;
-  let p=await loadProviders();
-  if(activeCategory)p=p.filter(x=>x.category===activeCategory);
-  if(q){const lq=q.toLowerCase();p=p.filter(x=>x.name.toLowerCase().includes(lq)||x.category.toLowerCase().includes(lq)||(x.note||"").toLowerCase().includes(lq));}
-  if(!p.length){grid.innerHTML="";empty.style.display="block";info.textContent="";return;}
-  empty.style.display="none";
-  info.textContent=p.length===1?"1 resultado":`${p.length} resultados`;
-  grid.innerHTML=p.map((x,i)=>{
-    const wa=x.phone.replace(/\D/g,"");
-    return`<div class="svc-card" style="animation-delay:${i*.03}s">
-      <div class="card-avatar">${getIcon(x.category)}</div>
-      <div class="card-info">
-        <div class="card-category">${x.category}</div>
-        <div class="card-name">${x.name}</div>
-        ${x.note?`<div class="card-note">${x.note}</div>`:""}
-      </div>
-      <a class="card-wa" href="https://wa.me/55${wa}" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      </a>
-    </div>`;
-  }).join("");
-}
-
-document.getElementById("search-input").addEventListener("input",async function(){
-  const q=this.value.trim();
-  document.getElementById("clear-btn").style.display=q?"block":"none";
-  activeCategory=null;await renderCategories();await renderCards(q);
-});
-async function clearSearch(){
-  document.getElementById("search-input").value="";
-  document.getElementById("clear-btn").style.display="none";
-  await renderCards();
-}
-
-// ══════ DOCUMENTOS ══════
-async function renderDocs(){
-  const grid=document.getElementById("docs-grid");
-  grid.innerHTML=`<div class="loading">Carregando…</div>`;
-  const docs=await loadDocs();
-  if(!docs.length){grid.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text-soft);">Nenhum documento cadastrado.</div>`;return;}
-  grid.innerHTML=docs.map((d,i)=>{
-    const isPdf=d.type==="pdf";
-    return`<a class="doc-card" href="${d.url}" target="_blank" rel="noopener" style="animation-delay:${i*.05}s">
-      <div class="doc-icon ${isPdf?"":"link-type"}">${isPdf?"📄":"🔗"}</div>
-      <div class="doc-info">
-        <div class="doc-cat ${isPdf?"":"link-cat"}">${isPdf?"PDF":"Link"}</div>
-        <div class="doc-name">${d.name}</div>
-        ${d.description?`<div class="doc-desc">${d.description}</div>`:""}
-      </div>
-      <div class="doc-action">${isPdf?"⬇️":"›"}</div>
-    </a>`;
-  }).join("");
-}
-
-// ══════ AVISOS ══════
-async function renderAvisos(){
-  const grid=document.getElementById("avisos-grid");
-  const noAv=document.getElementById("no-avisos");
-  grid.innerHTML=`<div class="loading">Carregando…</div>`;
-  const avisos=await loadAvisos();
-  if(!avisos.length){grid.innerHTML="";noAv.style.display="block";return;}
-  noAv.style.display="none";
-  const typeLabel={info:"ℹ️ Informação",alerta:"⚠️ Alerta",urgente:"🚨 Urgente"};
-  grid.innerHTML=avisos.map((av,i)=>`
-    <div class="aviso-card" style="animation-delay:${i*.05}s">
-      <div class="aviso-header">
-        <span class="aviso-badge ${av.type}">${typeLabel[av.type]||"ℹ️"}</span>
-        <span class="aviso-date">${av.date}</span>
-      </div>
-      <div class="aviso-title">${av.title}</div>
-      <div class="aviso-body">${av.body}</div>
-    </div>`).join("");
-}
-
-// ══════ WIFI ══════
-function copyWifi(pass,btn){
-  navigator.clipboard.writeText(pass).then(()=>{
-    const orig=btn.textContent;btn.textContent="Copiado!";
-    setTimeout(()=>btn.textContent=orig,1800);
-  }).catch(()=>{btn.textContent="Copie: "+pass;});
-}
-
-// ══════ NAVIGATION ══════
-function goAdmin(){
-  TABS.forEach(t=>document.getElementById("tab-"+t).classList.remove("active"));
-  document.getElementById("page-admin").classList.add("active");
-  document.getElementById("tabbar").style.display="none";
-  document.getElementById("admin-fab").style.display="none";
-  window.scrollTo(0,0);
-}
-function goPublic(){
-  document.getElementById("page-admin").classList.remove("active");
-  document.getElementById("tabbar").style.display="flex";
-  document.getElementById("admin-fab").style.display="flex";
-  isAuth=false;
-  document.getElementById("pw-gate").style.display="block";
-  document.getElementById("admin-panel").style.display="none";
-  document.getElementById("pw-input").value="";
-  document.getElementById("pw-error").style.display="none";
-  window.scrollTo(0,0);
-  switchTab("prestadores",document.querySelector(".tab-btn"));
-}
-
-// ══════ AUTH ══════
-let isAuth=false;
-async function checkPw(){
-  const typed=document.getElementById("pw-input").value;
-  if(!typed){return;}
-  showToast("⏳ Verificando…");
-  try{
-    const{data,error}=await _sb.from("config").select("value").eq("key","admin_password").single();
-    if(error||!data){showToast("❌ Erro ao verificar senha");return;}
-    if(typed===data.value){
-      isAuth=true;
-      document.getElementById("pw-gate").style.display="none";
-      document.getElementById("admin-panel").style.display="block";
-      await Promise.all([renderAdminPrest(),renderAdminDocs(),renderAdminAvisos(),renderCatSelect()]);
-    }else{
-      document.getElementById("pw-error").style.display="block";
-      document.getElementById("pw-input").value="";
-      document.getElementById("pw-input").focus();
-    }
-  }catch(e){showToast("❌ Erro de conexão");}
-}
-
-// ══════ ADMIN TABS ══════
-function switchAdminTab(sec,btn){
-  document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));
-  document.getElementById("asec-"+sec).classList.add("active");
-  document.querySelectorAll(".admin-tab").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-}
-
-// ══════ ADMIN PRESTADORES ══════
-async function renderCatSelect(){
-  const sel=document.getElementById("f-cat");
-  sel.innerHTML=`<option value="">— Selecione —</option>`;
-  const cats=await loadCats();
-  cats.forEach(c=>{sel.innerHTML+=`<option value="${c}">${c}</option>`;});
-}
-function formatPhone(p){const d=p.replace(/\D/g,"");if(d.length===11)return`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;if(d.length===10)return`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return p;}
-function maskPhone(input){let v=input.value.replace(/\D/g,"");if(v.length>11)v=v.slice(0,11);if(v.length<=10){v=v.replace(/(\d{2})(\d{4})(\d+)/,"($1) $2-$3").replace(/(\d{2})(\d+)/,"($1) $2");}else{v=v.replace(/(\d{2})(\d{5})(\d+)/,"($1) $2-$3");}input.value=v;}
-
-async function renderAdminPrest(){
-  const p=await loadProviders();
-  document.getElementById("list-title-prest").innerHTML=`Prestadores <span class="badge-count">${p.length}</span>`;
-  document.getElementById("admin-list-prest").innerHTML=p.length
-    ?p.map(x=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${x.category}</div><div class="admin-item-name">${x.name}</div><div class="admin-item-detail">${formatPhone(x.phone)}</div></div><button class="del-btn" onclick="delProvider(${x.id})">🗑</button></div>`).join("")
-    :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum prestador.</div>`;
-}
+// Ações do Formulário
 async function addPrestador() {
-  const name = document.getElementById("p-nome").value.trim();
-  const phone = document.getElementById("p-tel").value.trim();
-  const category = document.getElementById("p-cat").value.trim();
-  
-  if(!name || !phone || !category) {
-    showToast("⚠️ Preencha todos os campos");
-    return;
-  }
+  const nome = document.getElementById("p-nome").value.trim();
+  const telefone = document.getElementById("p-tel").value.trim();
+  const categoria = document.getElementById("p-cat").value.trim();
+
+  if (!nome || !telefone || !categoria) return showToast("⚠️ Preencha tudo");
 
   showToast("⏳ Cadastrando...");
-  const ok = await dbAddPrestador({ name, phone, category }); // Chaves em inglês
-  if(ok) {
+  const ok = await dbAddPrestador({ nome, telefone, categoria });
+  if (ok) {
     showToast("✅ Prestador cadastrado!");
-    // Limpar campos e recarregar listas
-    init(); 
+    ["p-nome", "p-tel", "p-cat"].forEach(id => document.getElementById(id).value = "");
+    init(); // Recarrega tudo
   } else {
     showToast("❌ Erro ao cadastrar");
   }
 }
-async function delProvider(id){
-  if(!confirm("Remover este prestador?"))return;
-  showToast("⏳ Removendo…");
-  const ok=await dbDelProvider(id);
-  if(!ok){showToast("❌ Erro ao remover");return;}
-  await renderAdminPrest();await renderCatSelect();await renderPublic();
-  showToast("🗑 Removido");
+
+async function renderAdminAvisos() {
+  const list = document.getElementById("admin-list-avisos");
+  const avisos = await fetch(`${API}?path=avisos`).then(r => r.json());
+  
+  list.innerHTML = avisos.map(a => `
+    <div style="background:rgba(255,255,255,.05); padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <div><small>${a.date}</small><br><strong>${a.title}</strong></div>
+      <button onclick="delAviso(${a.id})" style="background:#ff4444; border:none; color:white; padding:8px; border-radius:6px; cursor:pointer;">🗑</button>
+    </div>
+  `).join('');
 }
 
-// ══════ ADMIN DOCUMENTOS ══════
-async function renderAdminDocs(){
-  const docs=await loadDocs();
-  document.getElementById("list-title-docs").innerHTML=`Documentos <span class="badge-count">${docs.length}</span>`;
-  document.getElementById("admin-list-docs").innerHTML=docs.length
-    ?docs.map(d=>`<div class="admin-item"><div class="admin-item-icon">${d.type==="pdf"?"📄":"🔗"}</div><div class="admin-item-info"><div class="admin-item-sub">${d.type==="pdf"?"PDF":"Link"}</div><div class="admin-item-name">${d.name}</div><div class="admin-item-detail">${d.description||d.url}</div></div><button class="del-btn" onclick="delDoc(${d.id})">🗑</button></div>`).join("")
-    :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum documento.</div>`;
-}
-async function addDoc(){
-  const name=document.getElementById("d-name").value.trim();
-  const url=document.getElementById("d-url").value.trim();
-  const type=document.getElementById("d-type").value;
-  const description=document.getElementById("d-desc").value.trim();
-  if(!name||!url){showToast("⚠️ Preencha nome e URL");return;}
-  showToast("⏳ Salvando…");
-  const ok=await dbAddDoc({name,url,type,description});
-  if(!ok){showToast("❌ Erro ao salvar");return;}
-  ["d-name","d-url","d-desc"].forEach(id=>document.getElementById(id).value="");
-  await renderAdminDocs();await renderDocs();
-  showToast("✅ Documento adicionado!");
-}
-async function delDoc(id){
-  if(!confirm("Remover este documento?"))return;
-  showToast("⏳ Removendo…");
-  const ok=await dbDelDoc(id);
-  if(!ok){showToast("❌ Erro ao remover");return;}
-  await renderAdminDocs();await renderDocs();
-  showToast("🗑 Removido");
+async function delAviso(id) {
+  if (!confirm("Remover aviso?")) return;
+  const ok = await dbDelAviso(id);
+  if (ok) {
+    showToast("🗑 Removido");
+    renderAdminAvisos();
+    init();
+  }
 }
 
-// ══════ ADMIN AVISOS ══════
-async function renderAdminAvisos(){
-  const av=await loadAvisos();
-  document.getElementById("list-title-avisos").innerHTML=`Avisos <span class="badge-count">${av.length}</span>`;
-  const typeLabel={info:"ℹ️ Info",alerta:"⚠️ Alerta",urgente:"🚨 Urgente"};
-  document.getElementById("admin-list-avisos").innerHTML=av.length
-    ?av.map(a=>`<div class="admin-item"><div class="admin-item-icon">${a.type==="urgente"?"🚨":a.type==="alerta"?"⚠️":"ℹ️"}</div><div class="admin-item-info"><div class="admin-item-sub">${typeLabel[a.type]||""} · ${a.date}</div><div class="admin-item-name">${a.title}</div><div class="admin-item-detail">${a.body.slice(0,60)}${a.body.length>60?"…":""}</div></div><button class="del-btn" onclick="delAviso(${a.id})">🗑</button></div>`).join("")
-    :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum aviso.</div>`;
-}
-async function addAviso(){
-  const title=document.getElementById("av-title").value.trim();
-  const body=document.getElementById("av-body").value.trim();
-  const type=document.getElementById("av-type").value;
-  if(!title||!body){showToast("⚠️ Preencha título e mensagem");return;}
-  const date=new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
-  showToast("⏳ Publicando…");
-  const ok=await dbAddAviso({title,body,type,date});
-  if(!ok){showToast("❌ Erro ao publicar");return;}
-  ["av-title","av-body"].forEach(id=>document.getElementById(id).value="");
-  await renderAdminAvisos();await renderAvisos();
-  showToast("✅ Aviso publicado!");
-}
-async function delAviso(id){
-  if(!confirm("Remover este aviso?"))return;
-  showToast("⏳ Removendo…");
-  const ok=await dbDelAviso(id);
-  if(!ok){showToast("❌ Erro ao remover");return;}
-  await renderAdminAvisos();await renderAvisos();
-  showToast("🗑 Removido");
+function logoutAdmin() {
+  document.getElementById('admin-login').style.display = 'block';
+  document.getElementById('admin-content').style.display = 'none';
+  document.getElementById('adminPass').value = '';
+  nav('prestadores', document.querySelector('.nav-item'));
 }
 
-// ════
-
-// ══════ TOAST ══════
-let toastTimer;
-function showToast(msg){
-  const t=document.getElementById("toast");
-  t.textContent=msg;t.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
 }
 
-// ══════ INIT ══════
-(async()=>{
-  await renderPublic();
-  await renderDocs();
-  await renderAvisos();
-})();
+window.onload = init;
 </script>
 </body>
 </html>
