@@ -6,52 +6,55 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.searchParams.get('path');
 
+  // Cabeçalhos essenciais para o login e formulários funcionarem
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json"
   };
 
   if (request.method === "OPTIONS") return new Response(null, { headers });
 
   try {
-    // ── CONSULTAS (GET) ──
+    // ── LEITURA (Enviando para o HTML em Português) ──
     if (request.method === 'GET') {
       let result;
       if (path === 'prestadores') {
-        result = await sql`SELECT id, name, phone, category FROM providers ORDER BY name ASC`;
+        // TRADUÇÃO AQUI: name vira nome, phone vira telefone, category vira categoria
+        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria FROM providers ORDER BY name ASC`;
       } else if (path === 'avisos') {
-        result = await sql`SELECT id, title, body, type, date FROM notices ORDER BY id DESC`;
+        result = await sql`SELECT * FROM notices ORDER BY id DESC`;
       } else if (path === 'docs') {
-        result = await sql`SELECT id, name, url, type, description FROM documents ORDER BY name ASC`;
+        result = await sql`SELECT id, name AS nome, url, type AS tipo, description AS descricao FROM documents ORDER BY name ASC`;
       }
       return new Response(JSON.stringify(result || []), { headers });
     }
 
-    // ── OPERAÇÕES (POST) ──
+    // ── ESCRITA E LOGIN (Recebendo do HTML em Português e gravando em Inglês) ──
     if (request.method === 'POST') {
       const body = await request.json();
 
-      // Login: Verifica na tabela config
       if (path === 'login') {
+        // O banco tem [{"key":"admin_password","value":"alexalex"}]
         const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
-        const isValid = config.length > 0 && config[0].value === body.password;
-        return new Response(JSON.stringify({ success: isValid }), { headers });
+        // Verifica se a senha digitada bate com "alexalex"
+        const success = config.length > 0 && config[0].value === body.password;
+        return new Response(JSON.stringify({ success }), { headers });
       }
 
-      // Adicionar Prestador
       if (path === 'add_prestador') {
-        await sql`INSERT INTO providers (name, phone, category) VALUES (${body.name}, ${body.phone}, ${body.category})`;
+        // O seu HTML envia body.nome, body.telefone e body.categoria. 
+        // Vamos inserir nas colunas name, phone e category da tabela providers.
+        await sql`INSERT INTO providers (name, phone, category) VALUES (${body.nome}, ${body.telefone}, ${body.categoria})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
-      // Adicionar Aviso
       if (path === 'add_aviso') {
         await sql`INSERT INTO notices (title, body, type, date) VALUES (${body.title}, ${body.body}, ${body.type}, ${body.date})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
-      // Deletar Aviso
       if (path === 'del_aviso') {
         await sql`DELETE FROM notices WHERE id = ${body.id}`;
         return new Response(JSON.stringify({ success: true }), { headers });
