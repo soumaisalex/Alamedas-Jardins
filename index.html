@@ -371,54 +371,85 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
 // Removemos o Supabase e apontamos para a nossa API no Cloudflare
 const API = '/api';
 
-// --- SUAS FUNÇÕES DE BUSCA ---
-async function dbGetPrestadores() {
-  const res = await fetch(`${API}?path=prestadores`);
-  return await res.json();
+// ── FUNÇÕES DE BUSCA ──
+async function loadProviders() {
+  try {
+    const res = await fetch(`${API}?path=prestadores`);
+    return await res.json();
+  } catch (e) {
+    console.error("Erro ao carregar prestadores:", e);
+    return [];
+  }
 }
 
-async function dbGetDocs() {
-  const res = await fetch(`${API}?path=docs`);
-  return await res.json();
+async function loadDocs() {
+  try {
+    const res = await fetch(`${API}?path=docs`);
+    return await res.json();
+  } catch (e) {
+    console.error("Erro ao carregar documentos:", e);
+    return [];
+  }
 }
 
-async function dbGetAvisos() {
-  const res = await fetch(`${API}?path=avisos`);
-  return await res.json();
+async function loadAvisos() {
+  try {
+    const res = await fetch(`${API}?path=avisos`);
+    return await res.json();
+  } catch (e) {
+    console.error("Erro ao carregar avisos:", e);
+    return [];
+  }
 }
 
-// --- SUAS FUNÇÕES DE ADMINISTRAÇÃO ---
-async function dbLogin(password) {
-  const res = await fetch(`${API}?path=login`, {
-    method: 'POST',
-    body: JSON.stringify({ password })
-  });
-  const data = await res.json();
-  return data.success;
+// ── FUNÇÕES DE ADMINISTRAÇÃO ──
+async function dbLogin(password) { // Se o seu script usar checkAdmin, mude o nome aqui
+  try {
+    const res = await fetch(`${API}?path=login`, {
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    return data.success;
+  } catch (e) {
+    return false;
+  }
 }
 
 async function dbAddPrestador(prestador) {
-  const res = await fetch(`${API}?path=add_prestador`, {
-    method: 'POST',
-    body: JSON.stringify(prestador)
-  });
-  return res.ok;
+  try {
+    const res = await fetch(`${API}?path=add_prestador`, {
+      method: 'POST',
+      body: JSON.stringify(prestador)
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
 }
 
-async function dbAddAviso(aviso) { // aviso = {title, body, type, date}
-  const res = await fetch(`${API}?path=add_aviso`, {
-    method: 'POST',
-    body: JSON.stringify(aviso)
-  });
-  return res.ok;
+async function dbAddAviso(aviso) {
+  try {
+    const res = await fetch(`${API}?path=add_aviso`, {
+      method: 'POST',
+      body: JSON.stringify(aviso)
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
 }
 
 async function dbDelAviso(id) {
-  const res = await fetch(`${API}?path=del_aviso`, {
-    method: 'POST',
-    body: JSON.stringify({ id })
-  });
-  return res.ok;
+  try {
+    const res = await fetch(`${API}?path=del_aviso`, {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ══════ CONFIG ══════
