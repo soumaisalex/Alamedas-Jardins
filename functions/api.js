@@ -6,7 +6,6 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.searchParams.get('path');
 
-  // Cabeçalhos essenciais para o login e formulários funcionarem
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -17,35 +16,32 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { headers });
 
   try {
-    // ── LEITURA (Enviando para o HTML em Português) ──
+    // ── LEITURA (GET) ──
     if (request.method === 'GET') {
       let result;
       if (path === 'prestadores') {
-        // TRADUÇÃO AQUI: name vira nome, phone vira telefone, category vira categoria
+        // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
         result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria FROM providers ORDER BY name ASC`;
       } else if (path === 'avisos') {
         result = await sql`SELECT * FROM notices ORDER BY id DESC`;
       } else if (path === 'docs') {
+        // Alinhado com d.nome, d.descricao, d.tipo do seu HTML
         result = await sql`SELECT id, name AS nome, url, type AS tipo, description AS descricao FROM documents ORDER BY name ASC`;
       }
       return new Response(JSON.stringify(result || []), { headers });
     }
 
-    // ── ESCRITA E LOGIN (Recebendo do HTML em Português e gravando em Inglês) ──
+    // ── ESCRITA E LOGIN (POST) ──
     if (request.method === 'POST') {
       const body = await request.json();
 
       if (path === 'login') {
-        // O banco tem [{"key":"admin_password","value":"alexalex"}]
         const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
-        // Verifica se a senha digitada bate com "alexalex"
         const success = config.length > 0 && config[0].value === body.password;
         return new Response(JSON.stringify({ success }), { headers });
       }
 
       if (path === 'add_prestador') {
-        // O seu HTML envia body.nome, body.telefone e body.categoria. 
-        // Vamos inserir nas colunas name, phone e category da tabela providers.
         await sql`INSERT INTO providers (name, phone, category) VALUES (${body.nome}, ${body.telefone}, ${body.categoria})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
