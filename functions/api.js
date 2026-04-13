@@ -1,4 +1,3 @@
-// functions/api.js
 import { neon } from '@neondatabase/serverless';
 
 export async function onRequest(context) {
@@ -7,7 +6,6 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.searchParams.get('path');
 
-  // Configurações de CORS para permitir que o front fale com a função
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -17,31 +15,38 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { headers });
 
   try {
-    // ROTA: Buscar Prestadores
-    if (path === 'prestadores' && request.method === 'GET') {
-      const result = await sql`SELECT * FROM prestadores ORDER BY nome ASC`;
-      return new Response(JSON.stringify(result), { headers });
+    // GET: Listagem Geral
+    if (request.method === 'GET') {
+      let result;
+      if (path === 'prestadores') result = await sql`SELECT * FROM prestadores ORDER BY nome ASC`;
+      if (path === 'avisos') result = await sql`SELECT * FROM avisos ORDER BY id DESC`;
+      if (path === 'docs') result = await sql`SELECT * FROM documentos ORDER BY nome ASC`;
+      return new Response(JSON.stringify(result || []), { headers });
     }
 
-    // ROTA: Buscar Avisos
-    if (path === 'avisos' && request.method === 'GET') {
-      const result = await sql`SELECT * FROM avisos ORDER BY id DESC`;
-      return new Response(JSON.stringify(result), { headers });
-    }
+    // POST: Operações de Escrita e Login
+    if (request.method === 'POST') {
+      const body = await request.json();
 
-    // ROTA: Login Admin
-    if (path === 'login' && request.method === 'POST') {
-      const { password } = await request.json();
-      const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
-      const match = config[0]?.value === password;
-      return new Response(JSON.stringify({ success: match }), { headers });
-    }
+      if (path === 'login') {
+        const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
+        return new Response(JSON.stringify({ success: config[0]?.value === body.password }), { headers });
+      }
 
-    // ROTA: Adicionar Prestador
-    if (path === 'add_prestador' && request.method === 'POST') {
-      const { nome, telefone, categoria } = await request.json();
-      await sql`INSERT INTO prestadores (nome, telefone, categoria) VALUES (${nome}, ${telefone}, ${categoria})`;
-      return new Response(JSON.stringify({ success: true }), { headers });
+      if (path === 'add_prestador') {
+        await sql`INSERT INTO prestadores (nome, telefone, categoria) VALUES (${body.nome}, ${body.telefone}, ${body.categoria})`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
+      if (path === 'add_aviso') {
+        await sql`INSERT INTO avisos (title, body, type, date) VALUES (${body.title}, ${body.body}, ${body.type}, ${body.date})`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
+      if (path === 'del_aviso') {
+        await sql`DELETE FROM avisos WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
     }
 
     return new Response("Rota não encontrada", { status: 404 });
