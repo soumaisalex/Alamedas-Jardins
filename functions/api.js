@@ -55,6 +55,20 @@ export async function onRequest(context) {
         await sql`DELETE FROM notices WHERE id = ${body.id}`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
+      if (path === 'del_prestador') {
+        await sql`DELETE FROM providers WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      
+      if (path === 'add_doc') {
+        await sql`INSERT INTO documents (name, url, type, description) VALUES (${body.nome}, ${body.url}, ${body.tipo}, ${body.descricao})`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
+      if (path === 'del_doc') {
+        await sql`DELETE FROM documents WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
     }
 
     return new Response(JSON.stringify({ error: "Rota não encontrada" }), { status: 404, headers });
