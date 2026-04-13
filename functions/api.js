@@ -15,40 +15,43 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { headers });
 
   try {
-    // GET: Consultas
+    // ── CONSULTAS (GET) ──
     if (request.method === 'GET') {
       let result;
       if (path === 'prestadores') {
         result = await sql`SELECT id, name, phone, category FROM providers ORDER BY name ASC`;
-      }
-      if (path === 'avisos') {
-        result = await sql`SELECT * FROM notices ORDER BY id DESC`;
-      }
-      if (path === 'docs') {
+      } else if (path === 'avisos') {
+        result = await sql`SELECT id, title, body, type, date FROM notices ORDER BY id DESC`;
+      } else if (path === 'docs') {
         result = await sql`SELECT id, name, url, type, description FROM documents ORDER BY name ASC`;
       }
       return new Response(JSON.stringify(result || []), { headers });
     }
 
-    // POST: Login e Escrita
+    // ── OPERAÇÕES (POST) ──
     if (request.method === 'POST') {
       const body = await request.json();
 
+      // Login: Verifica na tabela config
       if (path === 'login') {
         const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
-        return new Response(JSON.stringify({ success: config[0]?.value === body.password }), { headers });
+        const isValid = config.length > 0 && config[0].value === body.password;
+        return new Response(JSON.stringify({ success: isValid }), { headers });
       }
 
+      // Adicionar Prestador
       if (path === 'add_prestador') {
         await sql`INSERT INTO providers (name, phone, category) VALUES (${body.name}, ${body.phone}, ${body.category})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
+      // Adicionar Aviso
       if (path === 'add_aviso') {
         await sql`INSERT INTO notices (title, body, type, date) VALUES (${body.title}, ${body.body}, ${body.type}, ${body.date})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
+      // Deletar Aviso
       if (path === 'del_aviso') {
         await sql`DELETE FROM notices WHERE id = ${body.id}`;
         return new Response(JSON.stringify({ success: true }), { headers });
