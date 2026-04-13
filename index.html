@@ -368,35 +368,71 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 <script>
-// apontametno para a API no Cloudflare
-const API = '/api';
-
+  const API = '/api'; // Carregamento de dados
+  
 async function loadProviders() {
   const res = await fetch(`${API}?path=prestadores`);
-  return await res.json();
+  const data = await res.json();  // Se o seu HTML usa p.nome, vamos mapear aqui para garantir
+  return data.map(p => ({
+    ...p,
+    nome: p.name,       // Garante compatibilidade com seu render
+    telefone: p.phone, 
+    categoria: p.category
+  }));
 }
 
 async function loadDocs() {
   const res = await fetch(`${API}?path=docs`);
-  return await res.json();
+  const data = await res.json();
+  return data.map(d => ({
+    ...d,
+    nome: d.name,
+    descricao: d.description
+  }));
 }
 
-async function loadAvisos() {
-  const res = await fetch(`${API}?path=avisos`);
-  return await res.json();
+// Função de Login com Feedback
+async function dbLogin(password) {
+  try {
+    const res = await fetch(`${API}?path=login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    
+    if (!res.ok) throw new Error("Erro na rede");
+    
+    const data = await res.json();
+    if (!data.success) {
+      if (typeof showToast === 'function') showToast("❌ Senha incorreta");
+      else alert("Senha incorreta");
+    }
+    return data.success;
+  } catch (e) {
+    console.error("Erro no login:", e);
+    return false;
+  }
 }
 
-// Garanta que a sua função init chame os renders corretamente
+  
+// Inicialização (ajuste para bater com seu init)
 async function init() {
-  // Carrega tudo em paralelo
-  const [p, d, a] = await Promise.all([loadProviders(), loadDocs(), loadAvisos()]);
-  
-  // providers é a variável global que seus filtros usam
-  providers = p; 
-  
+  const [p, d, a] = await Promise.all([
+    loadProviders(),
+    loadDocs(),
+    typeof loadAvisos === 'function' ? loadAvisos() : fetch(`${API}?path=avisos`).then(r => r.json())
+  ]);
+
+  // 'providers' costuma ser a variável global para seus filtros
+  if (typeof providers !== 'undefined') providers = p; 
+
   renderProviders(p);
   renderDocs(d);
   renderAvisos(a);
+}
+async function loadAvisos() {
+  const res = await fetch(`${API}?path=avisos`);
+  return await res.json();
 }
  
 // ── FUNÇÕES DE ADMINISTRAÇÃO ──
