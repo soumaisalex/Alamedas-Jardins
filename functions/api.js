@@ -21,7 +21,7 @@ export async function onRequest(context) {
       let result;
       if (path === 'prestadores') {
         // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
-        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria FROM providers ORDER BY name ASC`;
+        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note FROM providers ORDER BY name ASC`;
       } else if (path === 'avisos') {
         result = await sql`SELECT * FROM notices ORDER BY id DESC`;
       } else if (path === 'docs') {
@@ -42,7 +42,7 @@ export async function onRequest(context) {
       }
 
       if (path === 'add_prestador') {
-        await sql`INSERT INTO providers (name, phone, category) VALUES (${body.nome}, ${body.telefone}, ${body.categoria})`;
+        await sql`INSERT INTO providers (name, phone, category, note) VALUES (${body.nome}, ${body.telefone}, ${body.categoria}, ${body.note || ''})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
