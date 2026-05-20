@@ -2,7 +2,7 @@ const API = '/api';
 
 // ══════ CONFIG ══════
 const CAT_ICONS = {
-  "água mineral":"💧","ar-condicionado":"❄️","arquiteta":"📐","aulas":"📚","babá":"👶",
+  "água mineral":"💧","agua mineral":"💧","ar-condicionado":"❄️","arquiteta":"📐","aulas":"📚","babá":"👶",
   "barbeiro":"💈","cabeleireira":"💇","carregadores":"🔌","corretora":"🏠","costureira":"🧵",
   "cuidadora":"🤝","dedetização":"🪲","dentista":"🦷","designer":"🛋️","eletricista":"⚡",
   "encanador":"🔧","faxineira":"🧹","formatação":"💻","fotografia":"📷","fretes":"🚛",
