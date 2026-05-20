@@ -3,12 +3,12 @@ const API = '/api';
 // ══════ CONFIG ══════
 const CAT_ICONS = {
   "água mineral":"💧","agua mineral":"💧","ar-condicionado":"❄️","arquiteta":"📐","aulas":"📚","babá":"👶",
-  "barbeiro":"💈","cabeleireira":"💇","carregadores":"🔌","corretora":"🏠","costureira":"🧵",
-  "cuidadora":"🤝","dedetização":"🪲","dentista":"🦷","designer":"🛋️","eletricista":"⚡",
-  "encanador":"🔧","faxineira":"🧹","formatação":"💻","fotografia":"📷","fretes":"🚛",
+  "barbeiro":"💈","cabeleireira":"💇","carregadores":"🔌","consórcios":"🔑","corretora":"🏠","costureira":"🧵",
+  "cuidadora":"🤝","dedetização":"🪲","dentista":"🦷","designer":"🛋️","depilação":"🪒","eletricista":"⚡",
+  "encanador":"🪠","faxineira":"🧹","festas e eventos":"🎉","fonoaudióloga":"🗣️","formatação":"💻","fotografia":"📷","fretes":"🚛",
   "mudanças":"🚛","geladeira":"🧊","guincho":"🚗","impressão":"🖨️","manicure":"💅",
   "box":"🚿","massagem":"💆","motoboy":"🛵","montador":"🪛","nutricionista":"🥗",
-  "pedreiro":"🧱","pintor":"🎨","plano de saúde":"🏥","podologia":"🦶","sobrancelha":"✨",
+  "pedreiro":"🧱","pintor":"🎨","plano de saúde":"🏥","podologia":"🦶","psicopedagogia":"🧠","sobrancelha":"👀",
   "sofá":"🛋️","transporte escolar":"🚌","veterinária":"🐾","higienização":"🧽",
 };
 function getIcon(cat){
