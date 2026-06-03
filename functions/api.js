@@ -35,10 +35,11 @@ export async function onRequest(context) {
         const topClicks = await sql`SELECT event_detail, COUNT(*) as count FROM analytics WHERE event_type = 'clique_whatsapp' GROUP BY event_detail ORDER BY count DESC LIMIT 5`;
         const topSearches = await sql`SELECT event_detail, COUNT(*) as count FROM analytics WHERE event_type = 'busca' AND event_detail != '' GROUP BY event_detail ORDER BY count DESC LIMIT 5`;
         const devices = await sql`SELECT device_type, COUNT(*) as count FROM analytics GROUP BY device_type`;
-        
+        const topDocs = await sql`SELECT event_detail, COUNT(*) as count FROM analytics WHERE event_type = 'documento_baixado' GROUP BY event_detail ORDER BY count DESC LIMIT 5`;
+
         result = { 
           total: total[0].count, 
-          topTabs, topClicks, topSearches, devices 
+          topTabs, topClicks, topSearches, devices, topDocs
         };
       }
       
