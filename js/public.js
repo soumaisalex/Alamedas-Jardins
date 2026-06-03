@@ -121,20 +121,6 @@ function copyWifi(pass,btn){
   }).catch(()=>{btn.textContent="Copie: "+pass;});
 }
 
-// ══════ ANALYTICS (Caseiro) ══════
-function getDeviceType() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
-}
-
-function trackEvent(type, detail) {
-  // Envia silenciosamente para a API sem travar a tela do usuário
-  fetch(`${API}?path=track`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, detail, device: getDeviceType() })
-  }).catch(() => {}); // Se falhar, ignora e não atrapalha a navegação
-}
-
 // ══════ NAVIGATION ══════
 function goAdmin(){
   TABS.forEach(t=>document.getElementById("tab-"+t).classList.remove("active"));
