@@ -29,10 +29,12 @@ async function loadAvisos(){
     return await res.json();
   } catch(e) { return []; }
 }
+
 async function loadCats(){
   const p=await loadProviders();
   return[...new Set(p.map(x=>x.category))].filter(Boolean).sort();
 }
+
 async function dbAddProvider(o){
   const res = await fetch(`${API}?path=add_prestador`, {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -40,12 +42,14 @@ async function dbAddProvider(o){
   });
   return res.ok;
 }
+
 async function dbDelProvider(id){
   const res = await fetch(`${API}?path=del_prestador`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id })
   });
   return res.ok;
 }
+
 async function dbAddDoc(o){
   const res = await fetch(`${API}?path=add_doc`, {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -53,18 +57,21 @@ async function dbAddDoc(o){
   });
   return res.ok;
 }
+
 async function dbDelDoc(id){
   const res = await fetch(`${API}?path=del_doc`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id })
   });
   return res.ok;
 }
+
 async function dbAddAviso(o){
   const res = await fetch(`${API}?path=add_aviso`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(o)
   });
   return res.ok;
 }
+
 async function dbDelAviso(id){
   const res = await fetch(`${API}?path=del_aviso`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id })
@@ -72,3 +79,15 @@ async function dbDelAviso(id){
   return res.ok;
 }
 
+// ══════ ANALYTICS (Caseiro) ══════
+function getDeviceType() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
+}
+
+function trackEvent(type, detail) {
+  fetch(`${API}?path=track`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, detail, device: getDeviceType() })
+  }).catch(() => {}); 
+}
