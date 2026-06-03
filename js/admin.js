@@ -83,7 +83,7 @@ async function renderAdminStats() {
     // Funçãozinha para desenhar as barrinhas
     const drawList = (arr) => arr.length ? arr.map(i => `
       <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-        <span>${i.event_detail || i.device_type}</span>
+        <span style="color:var(--cream); text-transform: capitalize;">${i.event_detail || i.device_type}</span>
         <strong style="color:var(--green-light)">${i.count}</strong>
       </div>
     `).join('') : '<small style="color:#aaa">Sem dados ainda.</small>';
