@@ -108,6 +108,11 @@ async function renderAdminStats() {
         <div class="form-title">💬 Top WhatsApp (Prestadores)</div>
         ${drawList(stats.topClicks)}
       </div>
+      
+      <div class="admin-form-card" style="margin-bottom:15px;">
+        <div class="form-title">📄 Top Documentos Acessados</div>
+        ${drawList(stats.topDocs)}
+      </div>
     `;
   } catch (e) {
     container.innerHTML = `<div style="color:red">Erro ao carregar estatísticas.</div>`;
