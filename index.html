@@ -260,7 +260,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
     <div class="apps-section-title">💬 Comunicação & Grupos</div>
     <div class="apps-grid">
       <!-- Card Síndico -->
-      <a class="app-card" href="https://wa.me/5579988338020" target="_blank" rel="noopener" style="background: #e8f9f0; border: 1px solid #c2eed5; text-decoration: none; position: relative; cursor: pointer; display: flex; flex-direction: column; justify-content: center;">
+      <a class="app-card" href="https://wa.me/5579988338020" target="_blank" onclick="trackEvent('clique_grupo', 'Síndico')" rel="noopener" style="background: #e8f9f0; border: 1px solid #c2eed5; text-decoration: none; position: relative; cursor: pointer; display: flex; flex-direction: column; justify-content: center;">
         <div class="app-icon">👨‍💼</div>
         <div class="app-name" style="color: #0b5c2d; font-weight: 600;">Síndico</div>
         <div style="position: absolute; top: 12px; right: 12px;" title="Falar com o Síndico">
@@ -268,7 +268,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
         </div>
       </a>
       <!-- Card Futsal -->
-      <a class="app-card" href="https://chat.whatsapp.com/JLR9NgpVA3XF7VvQihmd7P?mode=gi_t" target="_blank" rel="noopener" style="background: #e8f9f0; border: 1px solid #c2eed5; text-decoration: none; position: relative; cursor: pointer; display: flex; flex-direction: column; justify-content: center;">
+      <a class="app-card" href="https://chat.whatsapp.com/JLR9NgpVA3XF7VvQihmd7P?mode=gi_t" target="_blank" onclick="trackEvent('clique_grupo', 'Futsal')" rel="noopener" style="background: #e8f9f0; border: 1px solid #c2eed5; text-decoration: none; position: relative; cursor: pointer; display: flex; flex-direction: column; justify-content: center;">
         <div class="app-icon">⚽</div>
         <div class="app-name" style="color: #0b5c2d; font-weight: 600;">Futsal</div>
         <div style="position: absolute; top: 12px; right: 12px;" title="Grupo do WhatsApp">
@@ -276,7 +276,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
         </div>
       </a>
       <!-- Card Vôlei -->
-      <a class="app-card" href="https://chat.whatsapp.com/IYkzXcpo3ucLq3qiFiZYFK?mode=hqctcli" target="_blank" rel="noopener" style="background: #e8f9f0; border: 1px solid #c2eed5; text-decoration: none; position: relative; cursor: pointer; display: flex; flex-direction: column; justify-content: center;">
+      <a class="app-card" href="https://chat.whatsapp.com/IYkzXcpo3ucLq3qiFiZYFK?mode=hqctcli" target="_blank" onclick="trackEvent('clique_grupo', 'Vôlei')" rel="noopener" style="background: #e8f9f0; border: 1px solid #c2eed5; text-decoration: none; position: relative; cursor: pointer; display: flex; flex-direction: column; justify-content: center;">
         <div class="app-icon">🏐</div>
         <div class="app-name" style="color: #0b5c2d; font-weight: 600;">Vôlei</div>
         <div style="position: absolute; top: 12px; right: 12px;" title="Grupo do WhatsApp">
@@ -363,6 +363,11 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
       </div>
       <div class="admin-list-title" id="list-title-docs">Documentos</div>
       <div id="admin-list-docs"></div>
+    </div>
+    <!-- stats ADMIN -->
+    <div class="admin-section" id="asec-estatisticas">
+      <div class="admin-list-title">Estatísticas</div>
+      <div id="admin-list-stats"></div>
     </div>
     <!-- AVISOS ADMIN -->
     <div class="admin-section" id="asec-avisos">
