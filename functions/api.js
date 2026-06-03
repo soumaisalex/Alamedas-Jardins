@@ -19,7 +19,6 @@ export async function onRequest(context) {
     // ── LEITURA (GET) ──
     if (request.method === 'GET') {
       let result;
-      
       if (path === 'prestadores') {
         // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
         result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note FROM providers ORDER BY name ASC`;
@@ -28,13 +27,14 @@ export async function onRequest(context) {
       } else if (path === 'docs') {
         // Alinhado com d.nome, d.descricao, d.tipo do seu HTML
         result = await sql`SELECT id, name AS nome, url, type AS tipo, description AS descricao FROM documents ORDER BY name ASC`;
+      }
       return new Response(JSON.stringify(result || []), { headers });
     }
 
     // ── ESCRITA E LOGIN (POST) ──
     if (request.method === 'POST') {
       const body = await request.json();
-      
+
       if (path === 'login') {
         const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
         const success = config.length > 0 && config[0].value === body.password;
