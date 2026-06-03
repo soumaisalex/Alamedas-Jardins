@@ -9,6 +9,7 @@ function switchTab(tab,btn){
   if(tab==="documentos")renderDocs();
   if(tab==="avisos")renderAvisos();
   window.scrollTo(0,0);
+  trackEvent('aba_acessada', tab);
 }
 
 // ══════ PRESTADORES ══════
@@ -33,6 +34,7 @@ async function filterCat(cat){
   document.getElementById("search-input").value="";
   document.getElementById("clear-btn").style.display="none";
   await renderCategories();await renderCards();
+  if(cat) trackEvent('busca_categoria', cat);
 }
 
 async function renderCards(q=""){
