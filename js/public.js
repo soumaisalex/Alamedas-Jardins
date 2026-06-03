@@ -83,7 +83,7 @@ async function renderDocs(){
   if(!docs.length){grid.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text-soft);">Nenhum documento cadastrado.</div>`;return;}
   grid.innerHTML=docs.map((d,i)=>{
     const isPdf=d.type==="pdf";
-    return`<a class="doc-card" href="${d.url}" target="_blank" rel="noopener" style="animation-delay:${i*.05}s">
+    return`<a class="doc-card" href="${d.url}" target="_blank" rel="noopener" onclick="trackEvent('documento_baixado', '${d.name}')" style="animation-delay:${i*.05}s">
       <div class="doc-icon ${isPdf?"":"link-type"}">${isPdf?"📄":"🔗"}</div>
       <div class="doc-info">
         <div class="doc-cat ${isPdf?"":"link-cat"}">${isPdf?"PDF":"Link"}</div>
