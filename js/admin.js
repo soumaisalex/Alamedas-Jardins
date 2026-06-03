@@ -14,7 +14,7 @@ async function checkPw(){
       isAuth=true;
       document.getElementById("pw-gate").style.display="none";
       document.getElementById("admin-panel").style.display="block";
-      await Promise.all([renderAdminPrest(),renderAdminDocs(),renderAdminAvisos(),renderCatSelect()]);
+      await Promise.all([renderAdminPrest(),renderAdminDocs(),renderAdminAvisos(),renderAdminStats(),renderCatSelect()]);
     }else{
       document.getElementById("pw-error").style.display="block";
       document.getElementById("pw-input").value="";
@@ -70,6 +70,48 @@ async function delProvider(id){
   if(!ok){showToast("❌ Erro ao remover");return;}
   await renderAdminPrest();await renderCatSelect();await renderPublic();
   showToast("🗑 Removido");
+}
+
+// ══════ ESTATISTICAS ══════
+async function renderAdminStats() {
+  const container = document.getElementById("admin-list-stats");
+  container.innerHTML = `<div class="loading">Carregando dados...</div>`;
+  
+  try {
+    const stats = await fetch(`${API}?path=stats`).then(r => r.json());
+    
+    // Funçãozinha para desenhar as barrinhas
+    const drawList = (arr) => arr.length ? arr.map(i => `
+      <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+        <span>${i.event_detail || i.device_type}</span>
+        <strong style="color:var(--green-light)">${i.count}</strong>
+      </div>
+    `).join('') : '<small style="color:#aaa">Sem dados ainda.</small>';
+
+    container.innerHTML = `
+      <div class="admin-form-card" style="margin-bottom:15px; text-align:center;">
+        <h2 style="margin:0; font-size:32px; color:var(--green-light)">${stats.total}</h2>
+        <p style="margin:0; font-size:12px; color:#aaa">Interações totais capturadas</p>
+      </div>
+
+      <div class="admin-form-card" style="margin-bottom:15px;">
+        <div class="form-title">📱 Dispositivos</div>
+        ${drawList(stats.devices)}
+      </div>
+
+      <div class="admin-form-card" style="margin-bottom:15px;">
+        <div class="form-title">🏆 Top Abas Acessadas</div>
+        ${drawList(stats.topTabs)}
+      </div>
+
+      <div class="admin-form-card" style="margin-bottom:15px;">
+        <div class="form-title">💬 Top WhatsApp (Prestadores)</div>
+        ${drawList(stats.topClicks)}
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = `<div style="color:red">Erro ao carregar estatísticas.</div>`;
+  }
 }
 
 // ══════ ADMIN DOCUMENTOS ══════
