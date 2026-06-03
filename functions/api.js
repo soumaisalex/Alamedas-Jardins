@@ -16,9 +16,10 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { headers });
 
   try {
-    // ── LEITURA (GET) ──
+// ── LEITURA (GET) ──
     if (request.method === 'GET') {
       let result;
+      
       if (path === 'prestadores') {
         // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
         result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note FROM providers ORDER BY name ASC`;
@@ -27,7 +28,20 @@ export async function onRequest(context) {
       } else if (path === 'docs') {
         // Alinhado com d.nome, d.descricao, d.tipo do seu HTML
         result = await sql`SELECT id, name AS nome, url, type AS tipo, description AS descricao FROM documents ORDER BY name ASC`;
+      } else if (path === 'stats') {
+        // Novo bloco de estatísticas encaixado aqui!
+        const total = await sql`SELECT COUNT(*) as count FROM analytics`;
+        const topTabs = await sql`SELECT event_detail, COUNT(*) as count FROM analytics WHERE event_type = 'aba_acessada' GROUP BY event_detail ORDER BY count DESC LIMIT 5`;
+        const topClicks = await sql`SELECT event_detail, COUNT(*) as count FROM analytics WHERE event_type = 'clique_whatsapp' GROUP BY event_detail ORDER BY count DESC LIMIT 5`;
+        const topSearches = await sql`SELECT event_detail, COUNT(*) as count FROM analytics WHERE event_type = 'busca' AND event_detail != '' GROUP BY event_detail ORDER BY count DESC LIMIT 5`;
+        const devices = await sql`SELECT device_type, COUNT(*) as count FROM analytics GROUP BY device_type`;
+        
+        result = { 
+          total: total[0].count, 
+          topTabs, topClicks, topSearches, devices 
+        };
       }
+      
       return new Response(JSON.stringify(result || []), { headers });
     }
 
@@ -67,6 +81,14 @@ export async function onRequest(context) {
 
       if (path === 'del_doc') {
         await sql`DELETE FROM documents WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
+      if (path === 'track') {
+        const type = body.type || 'unknown';
+        const detail = body.detail || '';
+        const device = body.device || 'Desktop';
+        await sql`INSERT INTO analytics (event_type, event_detail, device_type) VALUES (${type}, ${detail}, ${device})`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
     }
