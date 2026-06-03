@@ -141,4 +141,3 @@ function goPublic(){
   window.scrollTo(0,0);
   switchTab("prestadores",document.querySelector(".tab-btn"));
 }
-
