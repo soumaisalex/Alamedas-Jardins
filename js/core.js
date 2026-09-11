@@ -4,10 +4,10 @@ const API = '/api';
 const CAT_ICONS = {
   "água mineral":"💧","agua mineral":"💧","ar-condicionado":"❄️","arquiteta":"📐","aulas":"📚","babá":"👶",
   "barbeiro":"💈","cabeleireira":"💇","carregadores":"🔌","consórcios":"🔑","corretora":"🏠","costureira":"🧵",
-  "cuidadora":"🤝","dedetização":"🪲","dentista":"🦷","designer":"🛋️","depilação":"🪒","eletricista":"⚡",
+  "cuidadora":"🤝","dedetização":"🪲","dentista":"🦷","designer":"🛋️","depilação":"🪒","eletricista":"⚡","telas de proteção":"🛡️",
   "encanador":"🪠","faxineira":"🧹","festas e eventos":"🎉","fonoaudióloga":"🗣️","formatação":"💻","fotografia":"📷","fretes":"🚛",
-  "mudanças":"🚛","geladeira":"🧊","guincho":"🚗","impressão":"🖨️","manicure":"💅",
-  "box":"🚿","massagem":"💆","motoboy":"🛵","montador":"🪛","nutricionista":"🥗",
+  "mudanças":"🚛","geladeira":"🧊","guincho":"🚗","impressão":"🖨️","manicure":"💅","marceneiro":"🪚","personal trainer":"💪",
+  "box":"🚿","massagem":"💆","motoboy":"🛵","montador":"🪛","nutricionista":"🥗","fisioterapia":"🦿","psico":"Ψ",
   "pedreiro":"🧱","pintor":"🎨","plano de saúde":"🏥","podologia":"🦶","psicopedagogia":"🧠","sobrancelha":"👀",
   "sofá":"🛋️","transporte escolar":"🚌","veterinária":"🐾","higienização":"🧽","Advogado(a)":"⚖️","advogado":"⚖️",
 };
