@@ -9,7 +9,7 @@ const CAT_ICONS = {
   "mudanças":"🚛","geladeira":"🧊","guincho":"🚗","impressão":"🖨️","manicure":"💅",
   "box":"🚿","massagem":"💆","motoboy":"🛵","montador":"🪛","nutricionista":"🥗",
   "pedreiro":"🧱","pintor":"🎨","plano de saúde":"🏥","podologia":"🦶","psicopedagogia":"🧠","sobrancelha":"👀",
-  "sofá":"🛋️","transporte escolar":"🚌","veterinária":"🐾","higienização":"🧽",
+  "sofá":"🛋️","transporte escolar":"🚌","veterinária":"🐾","higienização":"🧽","Advogado(a)":"⚖️",
 };
 function getIcon(cat){
   const k=cat.toLowerCase();
