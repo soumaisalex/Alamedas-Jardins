@@ -1,5 +1,13 @@
 import { neon } from '@neondatabase/serverless';
 
+async function isAdmin(sql, pw) {
+  if (!pw) return false;
+  const c = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
+  return c.length > 0 && c[0].value === pw;
+}
+
+const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','add_prestador','del_prestador'];
+
 export async function onRequest(context) {
   const sql = neon(context.env.DATABASE_URL);
   const { request } = context;
@@ -22,7 +30,9 @@ export async function onRequest(context) {
       
       if (path === 'prestadores') {
         // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
-        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note FROM providers ORDER BY name ASC`;
+        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note FROM providers WHERE status = 'aprovado' ORDER BY name ASC`;
+      } else if (path === 'cat_icons') {
+        result = await sql`SELECT category, icon FROM category_icons`;
       } else if (path === 'avisos') {
         result = await sql`SELECT * FROM notices ORDER BY id DESC`;
       } else if (path === 'docs') {
@@ -50,6 +60,10 @@ export async function onRequest(context) {
     if (request.method === 'POST') {
       const body = await request.json();
 
+      if (ADMIN_PATHS.includes(path) && !(await isAdmin(sql, body.password))) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers });
+      }
+
       if (path === 'login') {
         const config = await sql`SELECT value FROM config WHERE key = 'admin_password' LIMIT 1`;
         const success = config.length > 0 && config[0].value === body.password;
@@ -57,7 +71,52 @@ export async function onRequest(context) {
       }
 
       if (path === 'add_prestador') {
-        await sql`INSERT INTO providers (name, phone, category, note) VALUES (${body.nome}, ${body.telefone}, ${body.categoria}, ${body.note || ''})`;
+        await sql`INSERT INTO providers (name, phone, category, note, status) VALUES (${body.nome}, ${body.telefone}, ${body.categoria}, ${body.note || ''}, 'aprovado')`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
+      // ── CADASTRO PÚBLICO (fica pendente até aprovação) ──
+      if (path === 'cadastro_prestador') {
+        if (body.website) return new Response(JSON.stringify({ success: true }), { headers }); // honeypot anti-bot
+        const nome = String(body.nome || '').trim().slice(0, 80);
+        const telefone = String(body.telefone || '').replace(/\D/g, '');
+        const categoria = String(body.categoria || '').trim().slice(0, 40);
+        const note = String(body.note || '').trim().slice(0, 160);
+        if (!nome || !categoria || telefone.length < 10 || telefone.length > 11) {
+          return new Response(JSON.stringify({ success: false, error: 'invalido' }), { status: 400, headers });
+        }
+        const dup = await sql`SELECT 1 FROM providers WHERE phone = ${telefone} LIMIT 1`;
+        if (dup.length) return new Response(JSON.stringify({ success: false, error: 'duplicado' }), { headers });
+        const pend = await sql`SELECT COUNT(*) AS c FROM providers WHERE status = 'pendente'`;
+        if (Number(pend[0].c) >= 50) return new Response(JSON.stringify({ success: false, error: 'limite' }), { headers });
+        await sql`INSERT INTO providers (name, phone, category, note, status) VALUES (${nome}, ${telefone}, ${categoria}, ${note}, 'pendente')`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
+      // ── ADMIN: prestadores ──
+      if (path === 'admin_prestadores') {
+        const rows = await sql`SELECT id, name, phone, category, note, status FROM providers ORDER BY name ASC`;
+        return new Response(JSON.stringify(rows), { headers });
+      }
+      if (path === 'aprovar_prestador') {
+        await sql`UPDATE providers SET status = 'aprovado' WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'rejeitar_prestador') {
+        await sql`DELETE FROM providers WHERE id = ${body.id} AND status = 'pendente'`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'edit_prestador') {
+        await sql`UPDATE providers SET name = ${body.nome}, phone = ${body.telefone}, category = ${body.categoria}, note = ${body.note || ''} WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'set_cat_icon') {
+        const icon = String(body.icon || '').trim().slice(0, 16);
+        if (!icon) {
+          await sql`DELETE FROM category_icons WHERE category = ${body.categoria}`;
+        } else {
+          await sql`INSERT INTO category_icons (category, icon) VALUES (${body.categoria}, ${icon}) ON CONFLICT (category) DO UPDATE SET icon = EXCLUDED.icon`;
+        }
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 

@@ -11,10 +11,16 @@ const CAT_ICONS = {
   "pedreiro":"🧱","pintor":"🎨","plano de saúde":"🏥","podologia":"🦶","psicopedagogia":"🧠","sobrancelha":"👀",
   "sofá":"🛋️","transporte escolar":"🚌","veterinária":"🐾","higienização":"🧽","Advogado(a)":"⚖️","advogado":"⚖️",
 };
-function getIcon(cat){
+let CAT_OVERRIDES={};   // ícones editados no admin (tabela category_icons)
+let adminPw="";         // senha do admin em memória (enviada nas rotas protegidas)
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function defaultIcon(cat){
   const k=cat.toLowerCase();
   for(const[key,icon]of Object.entries(CAT_ICONS)){if(k.includes(key))return icon;}
   return"🛠️";
+}
+function getIcon(cat){
+  return CAT_OVERRIDES[cat.toLowerCase()]||defaultIcon(cat);
 }
 
 

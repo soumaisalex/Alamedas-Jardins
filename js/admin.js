@@ -11,10 +11,10 @@ async function checkPw(){
     });
     const data = await res.json();
     if(data.success){
-      isAuth=true;
+      isAuth=true;adminPw=typed;
       document.getElementById("pw-gate").style.display="none";
       document.getElementById("admin-panel").style.display="block";
-      await Promise.all([renderAdminPrest(),renderAdminDocs(),renderAdminAvisos(),renderAdminStats(),renderCatSelect()]);
+      await Promise.all([renderAdminPrest(),renderAdminDocs(),renderAdminAvisos(),renderAdminStats(),renderCatSelect(),renderAdminIcons()]);
     }else{
       document.getElementById("pw-error").style.display="block";
       document.getElementById("pw-input").value="";
@@ -41,12 +41,83 @@ async function renderCatSelect(){
 function formatPhone(p){const d=p.replace(/\D/g,"");if(d.length===11)return`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;if(d.length===10)return`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return p;}
 function maskPhone(input){let v=input.value.replace(/\D/g,"");if(v.length>11)v=v.slice(0,11);if(v.length<=10){v=v.replace(/(\d{2})(\d{4})(\d+)/,"($1) $2-$3").replace(/(\d{2})(\d+)/,"($1) $2");}else{v=v.replace(/(\d{2})(\d{5})(\d+)/,"($1) $2-$3");}input.value=v;}
 
+let adminProvCache=[];
+const btnStyle='style="background:rgba(74,140,92,.25);border-color:rgba(200,230,208,.3)"';
+function provItem(x,pending){
+  const actions=pending
+    ?`<button class="del-btn" ${btnStyle} onclick="openEditProv(${x.id})">✏️</button><button class="del-btn" ${btnStyle} onclick="approveProv(${x.id})">✔</button><button class="del-btn" onclick="rejectProv(${x.id})">✕</button>`
+    :`<button class="del-btn" ${btnStyle} onclick="openEditProv(${x.id})">✏️</button><button class="del-btn" onclick="delProvider(${x.id})">🗑</button>`;
+  return `<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${esc(x.category)}</div><div class="admin-item-name">${esc(x.name)}</div><div class="admin-item-detail">${esc(formatPhone(x.phone))}${x.note?" · "+esc(x.note):""}</div></div><div style="display:flex;gap:6px;">${actions}</div></div>`;
+}
 async function renderAdminPrest(){
-  const p=await loadProviders();
-  document.getElementById("list-title-prest").innerHTML=`Prestadores <span class="badge-count">${p.length}</span>`;
-  document.getElementById("admin-list-prest").innerHTML=p.length
-    ?p.map(x=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${x.category}</div><div class="admin-item-name">${x.name}</div><div class="admin-item-detail">${formatPhone(x.phone)}</div></div><button class="del-btn" onclick="delProvider(${x.id})">🗑</button></div>`).join("")
+  adminProvCache=await loadAdminProviders();
+  const ok=adminProvCache.filter(x=>x.status!=="pendente");
+  const pend=adminProvCache.filter(x=>x.status==="pendente");
+  document.getElementById("list-title-prest").innerHTML=`Prestadores <span class="badge-count">${ok.length}</span>`;
+  document.getElementById("admin-list-prest").innerHTML=ok.length
+    ?ok.map(x=>provItem(x,false)).join("")
     :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum prestador.</div>`;
+  document.getElementById("list-title-pend").innerHTML=`Aguardando aprovação <span class="badge-count">${pend.length}</span>`;
+  document.getElementById("admin-list-pend").innerHTML=pend.length
+    ?pend.map(x=>provItem(x,true)).join("")
+    :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum cadastro pendente.</div>`;
+  document.getElementById("pend-badge").innerHTML=pend.length?`<span class="badge-count">${pend.length}</span>`:"";
+}
+async function refreshProvAll(){
+  await renderAdminPrest();await renderCatSelect();await renderAdminIcons();await renderPublic();
+}
+async function approveProv(id){
+  showToast("⏳ Aprovando…");
+  if(!await dbApproveProvider(id)){showToast("❌ Erro ao aprovar");return;}
+  await refreshProvAll();showToast("✅ Prestador aprovado!");
+}
+async function rejectProv(id){
+  if(!confirm("Rejeitar e apagar este cadastro?"))return;
+  showToast("⏳ Removendo…");
+  if(!await dbRejectProvider(id)){showToast("❌ Erro ao rejeitar");return;}
+  await renderAdminPrest();showToast("🗑 Cadastro rejeitado");
+}
+
+// ── Editar prestador ──
+function openEditProv(id){
+  const x=adminProvCache.find(p=>p.id===id);if(!x)return;
+  document.getElementById("e-id").value=x.id;
+  document.getElementById("e-name").value=x.name;
+  document.getElementById("e-phone").value=formatPhone(x.phone);
+  document.getElementById("e-cat").value=x.category;
+  document.getElementById("e-note").value=x.note||"";
+  const cats=[...new Set(adminProvCache.map(p=>p.category))].filter(Boolean).sort();
+  document.getElementById("e-cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
+  document.getElementById("edit-modal").classList.add("show");
+}
+function closeEditProv(){document.getElementById("edit-modal").classList.remove("show");}
+async function saveEditProv(){
+  const id=Number(document.getElementById("e-id").value);
+  const name=document.getElementById("e-name").value.trim();
+  const phone=document.getElementById("e-phone").value.replace(/\D/g,"");
+  const category=document.getElementById("e-cat").value.trim();
+  const note=document.getElementById("e-note").value.trim();
+  if(!name||!phone||!category){showToast("⚠️ Preencha nome, telefone e categoria");return;}
+  if(phone.length<10){showToast("⚠️ Telefone inválido");return;}
+  showToast("⏳ Salvando…");
+  if(!await dbEditProvider({id,name,phone,category,note})){showToast("❌ Erro ao salvar");return;}
+  closeEditProv();await refreshProvAll();showToast("✅ Prestador atualizado!");
+}
+
+// ── Ícones das categorias ──
+async function renderAdminIcons(){
+  await loadCatIcons();
+  const cats=await loadCats();
+  document.getElementById("admin-list-icons").innerHTML=cats.length
+    ?cats.map((c,i)=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(c)}</div><div class="admin-item-info"><div class="admin-item-name">${esc(c)}</div></div><input class="icon-input" id="ico-${i}" data-cat="${esc(c)}" maxlength="10" value="${esc(CAT_OVERRIDES[c.toLowerCase()]||"")}" placeholder="${defaultIcon(c)}"><button class="del-btn" ${btnStyle} onclick="saveCatIcon(${i})">💾</button></div>`).join("")
+    :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhuma categoria.</div>`;
+}
+async function saveCatIcon(i){
+  const inp=document.getElementById("ico-"+i);
+  showToast("⏳ Salvando…");
+  if(!await dbSetCatIcon(inp.dataset.cat,inp.value.trim())){showToast("❌ Erro ao salvar");return;}
+  await renderAdminPrest();await renderAdminIcons();await renderPublic();
+  showToast(inp.value.trim()?"✅ Ícone atualizado!":"↺ Ícone padrão restaurado");
 }
 async function addProvider(){
   const name=document.getElementById("f-name").value.trim();
@@ -60,7 +131,7 @@ async function addProvider(){
   if(!ok){showToast("❌ Erro ao salvar");return;}
   ["f-name","f-phone","f-newcat","f-note"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("f-cat").value="";
-  await renderAdminPrest();await renderCatSelect();await renderPublic();
+  await refreshProvAll();
   showToast("✅ Prestador adicionado!");
 }
 async function delProvider(id){
@@ -68,7 +139,7 @@ async function delProvider(id){
   showToast("⏳ Removendo…");
   const ok=await dbDelProvider(id);
   if(!ok){showToast("❌ Erro ao remover");return;}
-  await renderAdminPrest();await renderCatSelect();await renderPublic();
+  await refreshProvAll();
   showToast("🗑 Removido");
 }
 
