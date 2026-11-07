@@ -133,6 +133,41 @@ async function submitSignup(){
   else{showToast("❌ Erro ao enviar");}
 }
 
+// ══════ PEDIDO DE EXCLUSÃO DE CADASTRO (público) ══════
+const DL={list:[],selected:null};
+async function openDelReq(){
+  DL.list=await loadProviders();DL.selected=null;
+  ["dl-q","dl-note"].forEach(id=>document.getElementById(id).value="");
+  dlRender();
+  document.getElementById("delreq-modal").classList.add("show");
+}
+function closeDelReq(){document.getElementById("delreq-modal").classList.remove("show");}
+function dlRender(){
+  const q=norm(document.getElementById("dl-q").value.trim());
+  const box=document.getElementById("dl-list");
+  if(!q){box.innerHTML=`<div class="cp-empty">Digite seu nome para buscar</div>`;}
+  else{
+    const res=DL.list.filter(x=>norm(x.name).includes(q));
+    box.innerHTML=res.length
+      ?res.map(x=>`<div class="cp-opt ${String(x.id)===String(DL.selected)?"sel":""}" data-id="${esc(x.id)}" onclick="dlPick(this.dataset.id)">${getIcon(x.category)} ${esc(x.name)} <small style="opacity:.7">· ${esc(x.category)}</small></div>`).join("")
+      :`<div class="cp-empty">Nenhum cadastro encontrado</div>`;
+  }
+  const sel=DL.list.find(x=>String(x.id)===String(DL.selected));
+  document.getElementById("dl-sel").innerHTML=sel?`Selecionado: <strong>${getIcon(sel.category)} ${esc(sel.name)}</strong>`:"Nenhum cadastro selecionado";
+}
+function dlPick(id){DL.selected=id;dlRender();}
+async function submitDelReq(){
+  if(DL.selected===null){showToast("⚠️ Busque e selecione seu cadastro");return;}
+  const btn=document.getElementById("dl-btn");btn.disabled=true;
+  showToast("⏳ Enviando…");
+  const r=await dbRequestDelete({id:DL.selected,motivo:document.getElementById("dl-note").value.trim(),website:document.getElementById("dl-web").value});
+  btn.disabled=false;
+  if(r.success){closeDelReq();showToast("✅ Enviado! Aguarde a confirmação");}
+  else if(r.error==="duplicado"){showToast("⚠️ Já existe um pedido para este cadastro");}
+  else if(r.error==="limite"){showToast("⚠️ Tente novamente mais tarde");}
+  else{showToast("❌ Erro ao enviar");}
+}
+
 // ══════ DOCUMENTOS ══════
 async function renderDocs(){
   const grid=document.getElementById("docs-grid");

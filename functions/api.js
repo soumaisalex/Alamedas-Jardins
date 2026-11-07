@@ -6,7 +6,7 @@ async function isAdmin(sql, pw) {
   return c.length > 0 && c[0].value === pw;
 }
 
-const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','rename_cat','add_prestador','del_prestador'];
+const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','rename_cat','confirmar_exclusao','recusar_exclusao','add_prestador','del_prestador'];
 
 export async function onRequest(context) {
   const sql = neon(context.env.DATABASE_URL);
@@ -103,9 +103,30 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
+      // ── PEDIDO PÚBLICO DE EXCLUSÃO (o admin confirma) ──
+      if (path === 'solicitar_exclusao') {
+        if (body.website) return new Response(JSON.stringify({ success: true }), { headers });
+        const motivo = String(body.motivo || '').trim().slice(0, 200);
+        const rows = await sql`SELECT del_pedido FROM providers WHERE id = ${body.id} AND status = 'aprovado' LIMIT 1`;
+        if (!rows.length) return new Response(JSON.stringify({ success: false, error: 'invalido' }), { status: 400, headers });
+        if (rows[0].del_pedido) return new Response(JSON.stringify({ success: false, error: 'duplicado' }), { headers });
+        const cnt = await sql`SELECT COUNT(*) AS c FROM providers WHERE del_pedido = true`;
+        if (Number(cnt[0].c) >= 50) return new Response(JSON.stringify({ success: false, error: 'limite' }), { headers });
+        await sql`UPDATE providers SET del_pedido = true, del_motivo = ${motivo} WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'confirmar_exclusao') {
+        await sql`DELETE FROM providers WHERE id = ${body.id} AND del_pedido = true`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'recusar_exclusao') {
+        await sql`UPDATE providers SET del_pedido = false, del_motivo = '' WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+
       // ── ADMIN: prestadores ──
       if (path === 'admin_prestadores') {
-        const rows = await sql`SELECT id, name, phone, category, note, bloco, status FROM providers ORDER BY name ASC`;
+        const rows = await sql`SELECT id, name, phone, category, note, bloco, status, del_pedido, del_motivo FROM providers ORDER BY name ASC`;
         return new Response(JSON.stringify(rows), { headers });
       }
       if (path === 'aprovar_prestador') {

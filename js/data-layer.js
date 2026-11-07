@@ -69,6 +69,18 @@ async function dbSignup(o){
   } catch(e) { return { success: false }; }
 }
 
+async function dbRequestDelete(o){
+  try {
+    const res = await fetch(`${API}?path=solicitar_exclusao`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: o.id, motivo: o.motivo, website: o.website })
+    });
+    return await res.json();
+  } catch(e) { return { success: false }; }
+}
+async function dbConfirmDelReq(id){ return (await adminPost("confirmar_exclusao", { id })).ok; }
+async function dbDenyDelReq(id){ return (await adminPost("recusar_exclusao", { id })).ok; }
+
 async function dbAddProvider(o){
   const res = await adminPost("add_prestador", { nome: o.name, telefone: o.phone, categoria: o.category, note: o.note, bloco: o.bloco });
   return res.ok;

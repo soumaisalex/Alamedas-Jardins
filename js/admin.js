@@ -50,6 +50,20 @@ function provItem(x,pending){
     :`<button class="del-btn" ${btnStyle} onclick="openEditProv(${x.id})">✏️</button><button class="del-btn" onclick="delProvider(${x.id})">🗑</button>`;
   return `<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${esc(x.category)}</div><div class="admin-item-name">${esc(x.name)}</div><div class="admin-item-detail">${x.bloco?"Bloco "+esc(x.bloco)+" · ":""}${esc(formatPhone(x.phone))}${x.note?" · "+esc(x.note):""}</div></div><div style="display:flex;gap:6px;">${actions}</div></div>`;
 }
+function delReqItem(x){
+  return `<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${esc(x.category)}</div><div class="admin-item-name">${esc(x.name)}</div><div class="admin-item-detail">${x.bloco?"Bloco "+esc(x.bloco)+" · ":""}${esc(formatPhone(x.phone))}</div><div class="admin-item-detail" style="color:rgba(255,200,120,.85);">Motivo: ${x.del_motivo?esc(x.del_motivo):"não informado"}</div></div><div style="display:flex;gap:6px;"><button class="del-btn" onclick="confirmDelReq(${x.id})">🗑</button><button class="del-btn" ${btnStyle} onclick="denyDelReq(${x.id})">✕</button></div></div>`;
+}
+async function confirmDelReq(id){
+  if(!confirm("Excluir este cadastro definitivamente?"))return;
+  showToast("⏳ Excluindo…");
+  if(!await dbConfirmDelReq(id)){showToast("❌ Erro ao excluir");return;}
+  await refreshProvAll();showToast("🗑 Cadastro excluído");
+}
+async function denyDelReq(id){
+  showToast("⏳ Salvando…");
+  if(!await dbDenyDelReq(id)){showToast("❌ Erro");return;}
+  await renderAdminPrest();showToast("↩️ Pedido recusado");
+}
 async function renderAdminPrest(){
   adminProvCache=await loadAdminProviders();
   const ok=adminProvCache.filter(x=>x.status!=="pendente");
@@ -62,7 +76,13 @@ async function renderAdminPrest(){
   document.getElementById("admin-list-pend").innerHTML=pend.length
     ?pend.map(x=>provItem(x,true)).join("")
     :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhum cadastro pendente.</div>`;
-  document.getElementById("pend-badge").innerHTML=pend.length?`<span class="badge-count">${pend.length}</span>`:"";
+  const dels=adminProvCache.filter(x=>x.del_pedido);
+  document.getElementById("list-title-delreq").innerHTML=`Solicitações de exclusão <span class="badge-count">${dels.length}</span>`;
+  document.getElementById("admin-list-delreq").innerHTML=dels.length
+    ?dels.map(delReqItem).join("")
+    :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhuma solicitação.</div>`;
+  const tot=pend.length+dels.length;
+  document.getElementById("pend-badge").innerHTML=tot?`<span class="badge-count">${tot}</span>`:"";
 }
 async function refreshProvAll(){
   await renderAdminPrest();await renderCatSelect();await renderAdminIcons();await renderPublic();
