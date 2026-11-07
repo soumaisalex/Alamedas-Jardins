@@ -55,6 +55,7 @@ async function renderCards(q=""){
       <div class="card-info">
         <div class="card-category">${esc(x.category)}</div>
         <div class="card-name">${esc(x.name)}</div>
+        ${x.bloco?`<div class="card-bloco">🏢 Bloco ${esc(x.bloco)}</div>`:""}
         ${x.note?`<div class="card-note">${esc(x.note)}</div>`:""}
       </div>
       <a class="card-wa" href="https://wa.me/55${wa}" target="_blank" rel="noopener" data-track="${esc(x.name+' - '+x.category)}" onclick="trackEvent('clique_whatsapp', this.dataset.track)">

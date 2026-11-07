@@ -9,7 +9,8 @@ async function loadProviders(){
       name: p.nome || p.name,
       phone: p.telefone || p.phone,
       category: p.categoria || p.category,
-      note: p.note || ""
+      note: p.note || "",
+      bloco: p.bloco || ""
     }));
   } catch(e) { return []; }
 }

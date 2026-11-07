@@ -30,7 +30,7 @@ export async function onRequest(context) {
       
       if (path === 'prestadores') {
         // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
-        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note FROM providers WHERE status = 'aprovado' ORDER BY name ASC`;
+        result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note, bloco FROM providers WHERE status = 'aprovado' ORDER BY name ASC`;
       } else if (path === 'cat_icons') {
         result = await sql`SELECT category, icon FROM category_icons`;
       } else if (path === 'avisos') {
