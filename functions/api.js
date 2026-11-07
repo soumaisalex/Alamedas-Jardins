@@ -6,7 +6,7 @@ async function isAdmin(sql, pw) {
   return c.length > 0 && c[0].value === pw;
 }
 
-const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','add_prestador','del_prestador'];
+const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','rename_cat','add_prestador','del_prestador'];
 
 export async function onRequest(context) {
   const sql = neon(context.env.DATABASE_URL);
@@ -71,7 +71,7 @@ export async function onRequest(context) {
       }
 
       if (path === 'add_prestador') {
-        await sql`INSERT INTO providers (name, phone, category, note, status) VALUES (${body.nome}, ${body.telefone}, ${body.categoria}, ${body.note || ''}, 'aprovado')`;
+        await sql`INSERT INTO providers (name, phone, category, note, bloco, status) VALUES (${body.nome}, ${body.telefone}, ${body.categoria}, ${body.note || ''}, ${String(body.bloco || '')}, 'aprovado')`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
@@ -82,20 +82,30 @@ export async function onRequest(context) {
         const telefone = String(body.telefone || '').replace(/\D/g, '');
         const categoria = String(body.categoria || '').trim().slice(0, 40);
         const note = String(body.note || '').trim().slice(0, 160);
-        if (!nome || !categoria || telefone.length < 10 || telefone.length > 11) {
+        // bloco: "nao" = não mora no Alamedas (fica vazio); senão 1 a 26
+        const blocoRaw = String(body.bloco ?? '').trim();
+        let bloco = '';
+        let blocoOk = blocoRaw === 'nao';
+        if (!blocoOk) {
+          const n = Number(blocoRaw);
+          if (Number.isInteger(n) && n >= 1 && n <= 26) { bloco = String(n); blocoOk = true; }
+        }
+        if (!nome || !categoria || !blocoOk || telefone.length < 10 || telefone.length > 11) {
           return new Response(JSON.stringify({ success: false, error: 'invalido' }), { status: 400, headers });
         }
+        const catOk = await sql`SELECT 1 FROM providers WHERE category = ${categoria} AND status = 'aprovado' LIMIT 1`;
+        if (!catOk.length) return new Response(JSON.stringify({ success: false, error: 'categoria' }), { status: 400, headers });
         const dup = await sql`SELECT 1 FROM providers WHERE phone = ${telefone} LIMIT 1`;
         if (dup.length) return new Response(JSON.stringify({ success: false, error: 'duplicado' }), { headers });
         const pend = await sql`SELECT COUNT(*) AS c FROM providers WHERE status = 'pendente'`;
         if (Number(pend[0].c) >= 50) return new Response(JSON.stringify({ success: false, error: 'limite' }), { headers });
-        await sql`INSERT INTO providers (name, phone, category, note, status) VALUES (${nome}, ${telefone}, ${categoria}, ${note}, 'pendente')`;
+        await sql`INSERT INTO providers (name, phone, category, note, bloco, status) VALUES (${nome}, ${telefone}, ${categoria}, ${note}, ${bloco}, 'pendente')`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 
       // ── ADMIN: prestadores ──
       if (path === 'admin_prestadores') {
-        const rows = await sql`SELECT id, name, phone, category, note, status FROM providers ORDER BY name ASC`;
+        const rows = await sql`SELECT id, name, phone, category, note, bloco, status FROM providers ORDER BY name ASC`;
         return new Response(JSON.stringify(rows), { headers });
       }
       if (path === 'aprovar_prestador') {
@@ -107,7 +117,18 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true }), { headers });
       }
       if (path === 'edit_prestador') {
-        await sql`UPDATE providers SET name = ${body.nome}, phone = ${body.telefone}, category = ${body.categoria}, note = ${body.note || ''} WHERE id = ${body.id}`;
+        await sql`UPDATE providers SET name = ${body.nome}, phone = ${body.telefone}, category = ${body.categoria}, note = ${body.note || ''}, bloco = ${String(body.bloco || '')} WHERE id = ${body.id}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'rename_cat') {
+        const de = String(body.de || ''), para = String(body.para || '').trim().slice(0, 40);
+        if (!de || !para) return new Response(JSON.stringify({ success: false }), { status: 400, headers });
+        if (de !== para) {
+          await sql`UPDATE providers SET category = ${para} WHERE category = ${de}`;
+          const ex = await sql`SELECT 1 FROM category_icons WHERE category = ${para}`;
+          if (ex.length) await sql`DELETE FROM category_icons WHERE category = ${de}`;
+          else await sql`UPDATE category_icons SET category = ${para} WHERE category = ${de}`;
+        }
         return new Response(JSON.stringify({ success: true }), { headers });
       }
       if (path === 'set_cat_icon') {

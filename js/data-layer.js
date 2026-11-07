@@ -62,14 +62,14 @@ async function dbSignup(o){
   try {
     const res = await fetch(`${API}?path=cadastro_prestador`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: o.name, telefone: o.phone, categoria: o.category, note: o.note, website: o.website })
+      body: JSON.stringify({ nome: o.name, telefone: o.phone, categoria: o.category, note: o.note, bloco: o.bloco, website: o.website })
     });
     return await res.json();
   } catch(e) { return { success: false }; }
 }
 
 async function dbAddProvider(o){
-  const res = await adminPost("add_prestador", { nome: o.name, telefone: o.phone, categoria: o.category, note: o.note });
+  const res = await adminPost("add_prestador", { nome: o.name, telefone: o.phone, categoria: o.category, note: o.note, bloco: o.bloco });
   return res.ok;
 }
 
@@ -77,8 +77,9 @@ async function dbDelProvider(id){ return (await adminPost("del_prestador", { id 
 async function dbApproveProvider(id){ return (await adminPost("aprovar_prestador", { id })).ok; }
 async function dbRejectProvider(id){ return (await adminPost("rejeitar_prestador", { id })).ok; }
 async function dbEditProvider(o){
-  return (await adminPost("edit_prestador", { id: o.id, nome: o.name, telefone: o.phone, categoria: o.category, note: o.note })).ok;
+  return (await adminPost("edit_prestador", { id: o.id, nome: o.name, telefone: o.phone, categoria: o.category, note: o.note, bloco: o.bloco })).ok;
 }
+async function dbRenameCat(de, para){ return (await adminPost("rename_cat", { de, para })).ok; }
 async function dbSetCatIcon(categoria, icon){ return (await adminPost("set_cat_icon", { categoria, icon })).ok; }
 
 async function dbAddDoc(o){

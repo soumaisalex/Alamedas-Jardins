@@ -192,6 +192,12 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
 .modal-actions .btn-add{flex:1;margin-top:0;}
 .btn-ghost{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:13px;font-family:"DM Sans",sans-serif;font-size:15px;font-weight:600;color:var(--cream);cursor:pointer;}
 .hp{position:absolute;left:-9999px;opacity:0;height:0;width:0;}
+.cp-list{max-height:170px;overflow-y:auto;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;margin-top:8px;}
+.cp-opt{padding:10px 12px;font-size:14px;color:var(--cream);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);}
+.cp-opt.sel{background:var(--green-light);color:white;font-weight:600;}
+.cp-empty{padding:12px;font-size:13px;color:rgba(255,255,255,.4);text-align:center;}
+.cp-sel{font-size:12px;color:var(--green-pale);margin-top:6px;}
+.name-input{width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 10px;font-family:"DM Sans",sans-serif;font-size:14px;color:var(--cream);outline:none;}
 .icon-input{width:56px;flex-shrink:0;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 4px;text-align:center;font-size:18px;color:var(--cream);outline:none;}
 </style>
 </head>
@@ -344,7 +350,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
     <div class="admin-tabs">
       <div class="admin-tab active" onclick="switchAdminTab('prestadores',this)">🛠️ Prestadores</div>
       <div class="admin-tab" onclick="switchAdminTab('aprovacoes',this)">✅ Aprovações <span id="pend-badge"></span></div>
-      <div class="admin-tab" onclick="switchAdminTab('icones',this)">🎨 Ícones</div>
+      <div class="admin-tab" onclick="switchAdminTab('icones',this)">🎨 Categorias</div>
       <div class="admin-tab" onclick="switchAdminTab('documentos',this)">📄 Documentos</div>
       <div class="admin-tab" onclick="switchAdminTab('avisos',this)">📢 Avisos</div>
       <div class="admin-tab" onclick="switchAdminTab('estatisticas',this)">📊 Status</div>
@@ -356,6 +362,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
         <div class="field"><label>Nome</label><input type="text" id="f-name" placeholder="Ex: João da Silva"></div>
         <div class="field"><label>Telefone (com DDD)</label><input type="tel" id="f-phone" placeholder="79 99999-0000" oninput="maskPhone(this)"></div>
         <div class="field"><label>Categoria existente</label><select id="f-cat"><option value="">— Selecione —</option></select></div>
+        <div class="field"><label>Bloco onde reside</label><select id="f-bloco"></select></div>
         <div class="field"><label>Nova categoria (opcional)</label><input type="text" id="f-newcat" placeholder="Digite para criar nova"></div>
         <div class="field"><label>Observação (opcional)</label><input type="text" id="f-note" placeholder="Ex: Entrega terça e quinta"></div>
         <button class="btn-add" onclick="addProvider()">✔ Adicionar prestador</button>
@@ -370,8 +377,8 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
     </div>
     <!-- ÍCONES ADMIN -->
     <div class="admin-section" id="asec-icones">
-      <div class="admin-list-title">Ícones das categorias</div>
-      <div style="font-size:12px;color:rgba(200,230,208,.7);margin-bottom:12px;">Digite um emoji e salve. Deixe vazio e salve para voltar ao ícone padrão.</div>
+      <div class="admin-list-title">Categorias</div>
+      <div style="font-size:12px;color:rgba(200,230,208,.7);margin-bottom:12px;">Edite o nome e/ou o emoji e toque em 💾. Emoji vazio volta ao ícone padrão. Renomear atualiza todos os prestadores da categoria.</div>
       <div id="admin-list-icons"></div>
     </div>
     <!-- DOCUMENTOS ADMIN -->
@@ -425,7 +432,13 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
     <div class="modal-note">Seu cadastro será analisado pela administração antes de aparecer na lista.</div>
     <div class="field"><label>Nome</label><input type="text" id="su-name" maxlength="80" placeholder="Ex: João da Silva"></div>
     <div class="field"><label>Telefone / WhatsApp (com DDD)</label><input type="tel" id="su-phone" placeholder="79 99999-0000" oninput="maskPhone(this)"></div>
-    <div class="field"><label>Categoria / serviço</label><input type="text" id="su-cat" list="su-cats" maxlength="40" placeholder="Escolha ou digite (ex: Eletricista)"><datalist id="su-cats"></datalist></div>
+    <div class="field"><label>Categoria / serviço</label>
+      <input type="text" id="su-q" placeholder="🔍 Buscar categoria…" autocomplete="off" oninput="cpRender('su')">
+      <div class="cp-list" id="su-list"></div>
+      <div class="cp-sel" id="su-sel"></div>
+      <input type="hidden" id="su-cat">
+    </div>
+    <div class="field"><label>Bloco onde reside</label><select id="su-bloco"></select></div>
     <div class="field"><label>Observação (opcional)</label><input type="text" id="su-note" maxlength="160" placeholder="Ex: Atendo de segunda a sábado"></div>
     <input type="text" id="su-web" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="modal-actions"><button class="btn-ghost" onclick="closeSignup()">Cancelar</button><button class="btn-add" id="su-btn" onclick="submitSignup()">Enviar</button></div>
@@ -439,7 +452,13 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
     <input type="hidden" id="e-id">
     <div class="field"><label>Nome</label><input type="text" id="e-name" maxlength="80"></div>
     <div class="field"><label>Telefone (com DDD)</label><input type="tel" id="e-phone" oninput="maskPhone(this)"></div>
-    <div class="field"><label>Categoria</label><input type="text" id="e-cat" list="e-cats" maxlength="40"><datalist id="e-cats"></datalist></div>
+    <div class="field"><label>Categoria</label>
+      <input type="text" id="e-q" placeholder="🔍 Buscar categoria…" autocomplete="off" oninput="cpRender('e')">
+      <div class="cp-list" id="e-list"></div>
+      <div class="cp-sel" id="e-sel"></div>
+      <input type="hidden" id="e-cat">
+    </div>
+    <div class="field"><label>Bloco onde reside</label><select id="e-bloco"></select></div>
     <div class="field"><label>Observação</label><input type="text" id="e-note" maxlength="160"></div>
     <div class="modal-actions"><button class="btn-ghost" onclick="closeEditProv()">Cancelar</button><button class="btn-add" onclick="saveEditProv()">Salvar</button></div>
   </div>

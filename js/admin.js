@@ -34,6 +34,7 @@ function switchAdminTab(sec,btn){
 // ══════ ADMIN PRESTADORES ══════
 async function renderCatSelect(){
   const sel=document.getElementById("f-cat");
+  const fb=document.getElementById("f-bloco");if(!fb.options.length)fb.innerHTML=blocoOptions(false);
   sel.innerHTML=`<option value="">— Selecione —</option>`;
   const cats=await loadCats();
   cats.forEach(c=>{sel.innerHTML+=`<option value="${c}">${c}</option>`;});
@@ -47,7 +48,7 @@ function provItem(x,pending){
   const actions=pending
     ?`<button class="del-btn" ${btnStyle} onclick="openEditProv(${x.id})">✏️</button><button class="del-btn" ${btnStyle} onclick="approveProv(${x.id})">✔</button><button class="del-btn" onclick="rejectProv(${x.id})">✕</button>`
     :`<button class="del-btn" ${btnStyle} onclick="openEditProv(${x.id})">✏️</button><button class="del-btn" onclick="delProvider(${x.id})">🗑</button>`;
-  return `<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${esc(x.category)}</div><div class="admin-item-name">${esc(x.name)}</div><div class="admin-item-detail">${esc(formatPhone(x.phone))}${x.note?" · "+esc(x.note):""}</div></div><div style="display:flex;gap:6px;">${actions}</div></div>`;
+  return `<div class="admin-item"><div class="admin-item-icon">${getIcon(x.category)}</div><div class="admin-item-info"><div class="admin-item-sub">${esc(x.category)}</div><div class="admin-item-name">${esc(x.name)}</div><div class="admin-item-detail">${x.bloco?"Bloco "+esc(x.bloco)+" · ":""}${esc(formatPhone(x.phone))}${x.note?" · "+esc(x.note):""}</div></div><div style="display:flex;gap:6px;">${actions}</div></div>`;
 }
 async function renderAdminPrest(){
   adminProvCache=await loadAdminProviders();
@@ -78,56 +79,72 @@ async function rejectProv(id){
   await renderAdminPrest();showToast("🗑 Cadastro rejeitado");
 }
 
-// ── Editar prestador ──
+// ── Editar prestador (modal) ──
 function openEditProv(id){
-  const x=adminProvCache.find(p=>p.id===id);if(!x)return;
+  const x=adminProvCache.find(p=>String(p.id)===String(id));
+  if(!x){showToast("⚠️ Prestador não encontrado");return;}
   document.getElementById("e-id").value=x.id;
   document.getElementById("e-name").value=x.name;
   document.getElementById("e-phone").value=formatPhone(x.phone);
-  document.getElementById("e-cat").value=x.category;
   document.getElementById("e-note").value=x.note||"";
-  const cats=[...new Set(adminProvCache.map(p=>p.category))].filter(Boolean).sort();
-  document.getElementById("e-cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
+  const bl=document.getElementById("e-bloco");
+  bl.innerHTML=blocoOptions(false);bl.value=x.bloco||"";
+  const cats=[...new Set(adminProvCache.filter(p=>p.status!=="pendente").map(p=>p.category).concat(x.category))].filter(Boolean).sort();
+  cpInit("e",cats,x.category);
   document.getElementById("edit-modal").classList.add("show");
 }
 function closeEditProv(){document.getElementById("edit-modal").classList.remove("show");}
 async function saveEditProv(){
-  const id=Number(document.getElementById("e-id").value);
+  const id=document.getElementById("e-id").value;
   const name=document.getElementById("e-name").value.trim();
   const phone=document.getElementById("e-phone").value.replace(/\D/g,"");
-  const category=document.getElementById("e-cat").value.trim();
+  const category=document.getElementById("e-cat").value;
+  const bloco=document.getElementById("e-bloco").value;
   const note=document.getElementById("e-note").value.trim();
   if(!name||!phone||!category){showToast("⚠️ Preencha nome, telefone e categoria");return;}
   if(phone.length<10){showToast("⚠️ Telefone inválido");return;}
   showToast("⏳ Salvando…");
-  if(!await dbEditProvider({id,name,phone,category,note})){showToast("❌ Erro ao salvar");return;}
+  if(!await dbEditProvider({id,name,phone,category,bloco,note})){showToast("❌ Erro ao salvar");return;}
   closeEditProv();await refreshProvAll();showToast("✅ Prestador atualizado!");
 }
 
-// ── Ícones das categorias ──
+// ── Categorias: nome + ícone ──
 async function renderAdminIcons(){
   await loadCatIcons();
   const cats=await loadCats();
   document.getElementById("admin-list-icons").innerHTML=cats.length
-    ?cats.map((c,i)=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(c)}</div><div class="admin-item-info"><div class="admin-item-name">${esc(c)}</div></div><input class="icon-input" id="ico-${i}" data-cat="${esc(c)}" maxlength="10" value="${esc(CAT_OVERRIDES[c.toLowerCase()]||"")}" placeholder="${defaultIcon(c)}"><button class="del-btn" ${btnStyle} onclick="saveCatIcon(${i})">💾</button></div>`).join("")
+    ?cats.map((c,i)=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(c)}</div><div class="admin-item-info"><input class="name-input" id="cn-${i}" data-cat="${esc(c)}" maxlength="40" value="${esc(c)}"></div><input class="icon-input" id="ico-${i}" maxlength="10" value="${esc(CAT_OVERRIDES[c.toLowerCase()]||"")}" placeholder="${defaultIcon(c)}"><button class="del-btn" ${btnStyle} onclick="saveCatIcon(${i})">💾</button></div>`).join("")
     :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhuma categoria.</div>`;
 }
 async function saveCatIcon(i){
-  const inp=document.getElementById("ico-"+i);
+  const nameEl=document.getElementById("cn-"+i);
+  const old=nameEl.dataset.cat;
+  const novo=nameEl.value.trim();
+  const icon=document.getElementById("ico-"+i).value.trim();
+  if(!novo){showToast("⚠️ Informe o nome da categoria");return;}
+  const renamed=novo!==old;
+  if(renamed){
+    const exists=(await loadCats()).some(c=>c!==old&&c.toLowerCase()===novo.toLowerCase());
+    if(exists&&!confirm("Já existe uma categoria com esse nome. Juntar os prestadores nela?"))return;
+  }
   showToast("⏳ Salvando…");
-  if(!await dbSetCatIcon(inp.dataset.cat,inp.value.trim())){showToast("❌ Erro ao salvar");return;}
-  await renderAdminPrest();await renderAdminIcons();await renderPublic();
-  showToast(inp.value.trim()?"✅ Ícone atualizado!":"↺ Ícone padrão restaurado");
+  if(renamed&&!await dbRenameCat(old,novo)){showToast("❌ Erro ao renomear");return;}
+  if(!await dbSetCatIcon(novo,icon)){showToast("❌ Erro ao salvar");return;}
+  if(renamed&&activeCategory===old)activeCategory=null;
+  await refreshProvAll();
+  showToast("✅ Categoria atualizada!");
 }
+
 async function addProvider(){
   const name=document.getElementById("f-name").value.trim();
   const phone=document.getElementById("f-phone").value.replace(/\D/g,"");
   const category=document.getElementById("f-newcat").value.trim()||document.getElementById("f-cat").value;
+  const bloco=document.getElementById("f-bloco").value;
   const note=document.getElementById("f-note").value.trim();
   if(!name||!phone||!category){showToast("⚠️ Preencha nome, telefone e categoria");return;}
   if(phone.length<10){showToast("⚠️ Telefone inválido");return;}
   showToast("⏳ Salvando…");
-  const ok=await dbAddProvider({name,phone,category,note});
+  const ok=await dbAddProvider({name,phone,category,note,bloco});
   if(!ok){showToast("❌ Erro ao salvar");return;}
   ["f-name","f-phone","f-newcat","f-note"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("f-cat").value="";

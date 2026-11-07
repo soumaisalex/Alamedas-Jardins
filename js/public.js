@@ -75,31 +75,60 @@ async function clearSearch(){
   await renderCards();
 }
 
+// ══════ SELETOR DE CATEGORIA (busca + emoji) ══════
+const CP={};
+function norm(s){return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
+function cpInit(prefix,cats,selected){
+  CP[prefix]={cats,selected:selected||""};
+  document.getElementById(prefix+"-q").value="";
+  cpRender(prefix);
+}
+function cpRender(prefix){
+  const st=CP[prefix];
+  const q=norm(document.getElementById(prefix+"-q").value.trim());
+  const list=st.cats.filter(c=>norm(c).includes(q));
+  document.getElementById(prefix+"-list").innerHTML=list.length
+    ?list.map(c=>`<div class="cp-opt ${c===st.selected?"sel":""}" data-c="${esc(c)}" onclick="cpPick('${prefix}',this.dataset.c)">${getIcon(c)} ${esc(c)}</div>`).join("")
+    :`<div class="cp-empty">Nenhuma categoria encontrada</div>`;
+  document.getElementById(prefix+"-cat").value=st.selected;
+  document.getElementById(prefix+"-sel").innerHTML=st.selected?`Selecionada: <strong>${getIcon(st.selected)} ${esc(st.selected)}</strong>`:"Nenhuma categoria selecionada";
+}
+function cpPick(prefix,c){CP[prefix].selected=c;cpRender(prefix);}
+function blocoOptions(required){
+  let h=required?`<option value="">— Selecione —</option><option value="nao">Não sou morador do Alamedas</option>`:`<option value="">Não mora no Alamedas</option>`;
+  for(let i=1;i<=26;i++)h+=`<option value="${i}">Bloco ${i}</option>`;
+  return h;
+}
+
 // ══════ CADASTRO DE PRESTADOR (público) ══════
 async function openSignup(){
   const cats=await loadCats();
-  document.getElementById("su-cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
+  cpInit("su",cats,"");
+  const bl=document.getElementById("su-bloco");
+  bl.innerHTML=blocoOptions(true);bl.value="";
   document.getElementById("signup-modal").classList.add("show");
 }
 function closeSignup(){document.getElementById("signup-modal").classList.remove("show");}
 async function submitSignup(){
   const name=document.getElementById("su-name").value.trim();
   const phone=document.getElementById("su-phone").value.replace(/\D/g,"");
-  const category=document.getElementById("su-cat").value.trim();
+  const category=document.getElementById("su-cat").value;
+  const bloco=document.getElementById("su-bloco").value;
   const note=document.getElementById("su-note").value.trim();
   const website=document.getElementById("su-web").value;
-  if(!name||!phone||!category){showToast("⚠️ Preencha nome, telefone e categoria");return;}
+  if(!name||!phone||!category||!bloco){showToast("⚠️ Preencha nome, telefone, categoria e bloco");return;}
   if(phone.length<10){showToast("⚠️ Telefone inválido");return;}
   const btn=document.getElementById("su-btn");btn.disabled=true;
   showToast("⏳ Enviando…");
-  const r=await dbSignup({name,phone,category,note,website});
+  const r=await dbSignup({name,phone,category,bloco,note,website});
   btn.disabled=false;
   if(r.success){
-    ["su-name","su-phone","su-cat","su-note"].forEach(id=>document.getElementById(id).value="");
+    ["su-name","su-phone","su-note"].forEach(id=>document.getElementById(id).value="");
     closeSignup();
     showToast("✅ Enviado! Aguarde a aprovação");
   }else if(r.error==="duplicado"){showToast("⚠️ Este telefone já está cadastrado");}
   else if(r.error==="limite"){showToast("⚠️ Tente novamente mais tarde");}
+  else if(r.error==="categoria"){showToast("⚠️ Categoria inválida");}
   else{showToast("❌ Erro ao enviar");}
 }
 
