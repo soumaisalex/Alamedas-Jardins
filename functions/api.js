@@ -6,7 +6,7 @@ async function isAdmin(sql, pw) {
   return c.length > 0 && c[0].value === pw;
 }
 
-const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','rename_cat','confirmar_exclusao','recusar_exclusao','add_prestador','del_prestador'];
+const ADMIN_PATHS = ['admin_prestadores','aprovar_prestador','rejeitar_prestador','edit_prestador','set_cat_icon','rename_cat','add_cat','del_cat','confirmar_exclusao','recusar_exclusao','add_prestador','del_prestador'];
 
 export async function onRequest(context) {
   const sql = neon(context.env.DATABASE_URL);
@@ -31,6 +31,8 @@ export async function onRequest(context) {
       if (path === 'prestadores') {
         // Alinhado com p.nome, p.telefone, p.categoria do seu HTML
         result = await sql`SELECT id, name AS nome, phone AS telefone, category AS categoria, note, bloco FROM providers WHERE status = 'aprovado' ORDER BY name ASC`;
+      } else if (path === 'todas_categorias') {
+        result = await sql`SELECT c.category, COALESCE(p.n, 0)::int AS n FROM (SELECT category FROM providers WHERE status = 'aprovado' UNION SELECT category FROM category_icons) c LEFT JOIN (SELECT category, COUNT(*) AS n FROM providers GROUP BY category) p ON p.category = c.category ORDER BY c.category ASC`;
       } else if (path === 'cat_icons') {
         result = await sql`SELECT category, icon FROM category_icons`;
       } else if (path === 'avisos') {
@@ -93,7 +95,7 @@ export async function onRequest(context) {
         if (!nome || !categoria || !blocoOk || telefone.length < 10 || telefone.length > 11) {
           return new Response(JSON.stringify({ success: false, error: 'invalido' }), { status: 400, headers });
         }
-        const catOk = await sql`SELECT 1 FROM providers WHERE category = ${categoria} AND status = 'aprovado' LIMIT 1`;
+        const catOk = await sql`SELECT 1 FROM (SELECT category FROM providers WHERE status = 'aprovado' UNION SELECT category FROM category_icons) c WHERE c.category = ${categoria} LIMIT 1`;
         if (!catOk.length) return new Response(JSON.stringify({ success: false, error: 'categoria' }), { status: 400, headers });
         const dup = await sql`SELECT 1 FROM providers WHERE phone = ${telefone} LIMIT 1`;
         if (dup.length) return new Response(JSON.stringify({ success: false, error: 'duplicado' }), { headers });
@@ -152,13 +154,24 @@ export async function onRequest(context) {
         }
         return new Response(JSON.stringify({ success: true }), { headers });
       }
+      if (path === 'add_cat') {
+        const cat = String(body.categoria || '').trim().slice(0, 40);
+        const icon = String(body.icon || '').trim().slice(0, 16);
+        if (!cat) return new Response(JSON.stringify({ success: false, error: 'invalido' }), { status: 400, headers });
+        const ex = await sql`SELECT 1 FROM (SELECT category FROM providers UNION SELECT category FROM category_icons) c WHERE LOWER(c.category) = LOWER(${cat}) LIMIT 1`;
+        if (ex.length) return new Response(JSON.stringify({ success: false, error: 'duplicado' }), { headers });
+        await sql`INSERT INTO category_icons (category, icon) VALUES (${cat}, ${icon})`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
+      if (path === 'del_cat') {
+        const inUse = await sql`SELECT 1 FROM providers WHERE category = ${body.categoria} LIMIT 1`;
+        if (inUse.length) return new Response(JSON.stringify({ success: false, error: 'em_uso' }), { headers });
+        await sql`DELETE FROM category_icons WHERE category = ${body.categoria}`;
+        return new Response(JSON.stringify({ success: true }), { headers });
+      }
       if (path === 'set_cat_icon') {
         const icon = String(body.icon || '').trim().slice(0, 16);
-        if (!icon) {
-          await sql`DELETE FROM category_icons WHERE category = ${body.categoria}`;
-        } else {
-          await sql`INSERT INTO category_icons (category, icon) VALUES (${body.categoria}, ${icon}) ON CONFLICT (category) DO UPDATE SET icon = EXCLUDED.icon`;
-        }
+        await sql`INSERT INTO category_icons (category, icon) VALUES (${body.categoria}, ${icon}) ON CONFLICT (category) DO UPDATE SET icon = EXCLUDED.icon`;
         return new Response(JSON.stringify({ success: true }), { headers });
       }
 

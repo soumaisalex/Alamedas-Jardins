@@ -36,7 +36,7 @@ async function renderCatSelect(){
   const sel=document.getElementById("f-cat");
   const fb=document.getElementById("f-bloco");if(!fb.options.length)fb.innerHTML=blocoOptions(false);
   sel.innerHTML=`<option value="">— Selecione —</option>`;
-  const cats=await loadCats();
+  const cats=await loadAllCats();
   cats.forEach(c=>{sel.innerHTML+=`<option value="${c}">${c}</option>`;});
 }
 function formatPhone(p){const d=p.replace(/\D/g,"");if(d.length===11)return`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;if(d.length===10)return`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return p;}
@@ -100,7 +100,7 @@ async function rejectProv(id){
 }
 
 // ── Editar prestador (modal) ──
-function openEditProv(id){
+async function openEditProv(id){
   const x=adminProvCache.find(p=>String(p.id)===String(id));
   if(!x){showToast("⚠️ Prestador não encontrado");return;}
   document.getElementById("e-id").value=x.id;
@@ -109,7 +109,7 @@ function openEditProv(id){
   document.getElementById("e-note").value=x.note||"";
   const bl=document.getElementById("e-bloco");
   bl.innerHTML=blocoOptions(false);bl.value=x.bloco||"";
-  const cats=[...new Set(adminProvCache.filter(p=>p.status!=="pendente").map(p=>p.category).concat(x.category))].filter(Boolean).sort();
+  const cats=[...new Set((await loadAllCats()).concat(x.category))].filter(Boolean).sort();
   cpInit("e",cats,x.category);
   document.getElementById("edit-modal").classList.add("show");
 }
@@ -131,10 +131,30 @@ async function saveEditProv(){
 // ── Categorias: nome + ícone ──
 async function renderAdminIcons(){
   await loadCatIcons();
-  const cats=await loadCats();
-  document.getElementById("admin-list-icons").innerHTML=cats.length
-    ?cats.map((c,i)=>`<div class="admin-item"><div class="admin-item-icon">${getIcon(c)}</div><div class="admin-item-info"><input class="name-input" id="cn-${i}" data-cat="${esc(c)}" maxlength="40" value="${esc(c)}"></div><input class="icon-input" id="ico-${i}" maxlength="10" value="${esc(CAT_OVERRIDES[c.toLowerCase()]||"")}" placeholder="${defaultIcon(c)}"><button class="del-btn" ${btnStyle} onclick="saveCatIcon(${i})">💾</button></div>`).join("")
+  const rows=await loadAllCatRows();
+  document.getElementById("admin-list-icons").innerHTML=rows.length
+    ?rows.map((r,i)=>{const c=r.category;return `<div class="admin-item"><div class="admin-item-icon">${getIcon(c)}</div><div class="admin-item-info"><input class="name-input" id="cn-${i}" data-cat="${esc(c)}" maxlength="40" value="${esc(c)}"><div class="admin-item-detail">${r.n} prestador${r.n===1?"":"es"}</div></div><input class="icon-input" id="ico-${i}" maxlength="10" value="${esc(CAT_OVERRIDES[c.toLowerCase()]||"")}" placeholder="${defaultIcon(c)}"><button class="del-btn" ${btnStyle} onclick="saveCatIcon(${i})">💾</button>${r.n===0?`<button class="del-btn" onclick="delCat(${i})">🗑</button>`:""}</div>`;}).join("")
     :`<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px;">Nenhuma categoria.</div>`;
+}
+async function addCat(){
+  const name=document.getElementById("nc-name").value.trim();
+  const icon=document.getElementById("nc-icon").value.trim();
+  if(!name){showToast("⚠️ Informe o nome da categoria");return;}
+  showToast("⏳ Criando…");
+  const r=await dbAddCat(name,icon);
+  if(r.error==="duplicado"){showToast("⚠️ Essa categoria já existe");return;}
+  if(!r.success){showToast("❌ Erro ao criar");return;}
+  ["nc-name","nc-icon"].forEach(id=>document.getElementById(id).value="");
+  await renderCatSelect();await renderAdminIcons();
+  showToast("✅ Categoria criada!");
+}
+async function delCat(i){
+  const c=document.getElementById("cn-"+i).dataset.cat;
+  if(!confirm(`Excluir a categoria "${c}"?`))return;
+  const r=await dbDelCat(c);
+  if(r.error==="em_uso"){showToast("⚠️ Categoria com prestadores");return;}
+  if(!r.success){showToast("❌ Erro ao excluir");return;}
+  await renderCatSelect();await renderAdminIcons();showToast("🗑 Categoria excluída");
 }
 async function saveCatIcon(i){
   const nameEl=document.getElementById("cn-"+i);
@@ -144,7 +164,7 @@ async function saveCatIcon(i){
   if(!novo){showToast("⚠️ Informe o nome da categoria");return;}
   const renamed=novo!==old;
   if(renamed){
-    const exists=(await loadCats()).some(c=>c!==old&&c.toLowerCase()===novo.toLowerCase());
+    const exists=(await loadAllCats()).some(c=>c!==old&&c.toLowerCase()===novo.toLowerCase());
     if(exists&&!confirm("Já existe uma categoria com esse nome. Juntar os prestadores nela?"))return;
   }
   showToast("⏳ Salvando…");

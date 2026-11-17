@@ -391,6 +391,12 @@ body{font-family:"DM Sans",sans-serif;background:var(--cream);color:var(--text-d
     </div>
     <!-- ÍCONES ADMIN -->
     <div class="admin-section" id="asec-icones">
+      <div class="admin-form-card">
+        <div class="form-title">➕ Nova categoria</div>
+        <div class="field"><label>Nome</label><input type="text" id="nc-name" maxlength="40" placeholder="Ex: Eletricista"></div>
+        <div class="field"><label>Emoji (opcional)</label><input type="text" id="nc-icon" maxlength="10" placeholder="Ex: ⚡"></div>
+        <button class="btn-add" onclick="addCat()">Adicionar categoria</button>
+      </div>
       <div class="admin-list-title">Categorias</div>
       <div style="font-size:12px;color:rgba(200,230,208,.7);margin-bottom:12px;">Edite o nome e/ou o emoji e toque em 💾. Emoji vazio volta ao ícone padrão. Renomear atualiza todos os prestadores da categoria.</div>
       <div id="admin-list-icons"></div>

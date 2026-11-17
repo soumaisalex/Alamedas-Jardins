@@ -36,11 +36,20 @@ async function loadCats(){
   return[...new Set(p.map(x=>x.category))].filter(Boolean).sort();
 }
 
+// todas as categorias (inclusive vazias): [{category, n}]
+async function loadAllCatRows(){
+  try {
+    const d = await (await fetch(`${API}?path=todas_categorias`)).json();
+    return Array.isArray(d) ? d : [];
+  } catch(e) { return []; }
+}
+async function loadAllCats(){ return (await loadAllCatRows()).map(x => x.category); }
+
 async function loadCatIcons(){
   try {
     const d = await (await fetch(`${API}?path=cat_icons`)).json();
     CAT_OVERRIDES = {};
-    if (Array.isArray(d)) d.forEach(x => { CAT_OVERRIDES[x.category.toLowerCase()] = x.icon; });
+    if (Array.isArray(d)) d.forEach(x => { if (x.icon) CAT_OVERRIDES[x.category.toLowerCase()] = x.icon; });
   } catch(e) {}
 }
 
@@ -91,6 +100,12 @@ async function dbApproveProvider(id){ return (await adminPost("aprovar_prestador
 async function dbRejectProvider(id){ return (await adminPost("rejeitar_prestador", { id })).ok; }
 async function dbEditProvider(o){
   return (await adminPost("edit_prestador", { id: o.id, nome: o.name, telefone: o.phone, categoria: o.category, note: o.note, bloco: o.bloco })).ok;
+}
+async function dbAddCat(categoria, icon){
+  try { return await (await adminPost("add_cat", { categoria, icon })).json(); } catch(e) { return { success: false }; }
+}
+async function dbDelCat(categoria){
+  try { return await (await adminPost("del_cat", { categoria })).json(); } catch(e) { return { success: false }; }
 }
 async function dbRenameCat(de, para){ return (await adminPost("rename_cat", { de, para })).ok; }
 async function dbSetCatIcon(categoria, icon){ return (await adminPost("set_cat_icon", { categoria, icon })).ok; }

@@ -103,7 +103,7 @@ function blocoOptions(required){
 
 // ══════ CADASTRO DE PRESTADOR (público) ══════
 async function openSignup(){
-  const cats=await loadCats();
+  const cats=await loadAllCats();
   cpInit("su",cats,"");
   const bl=document.getElementById("su-bloco");
   bl.innerHTML=blocoOptions(true);bl.value="";
